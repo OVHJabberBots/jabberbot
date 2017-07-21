@@ -1,0 +1,4 @@
+jabberbot
+requests
+xmpppy
+schedule
