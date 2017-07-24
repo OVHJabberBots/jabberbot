@@ -146,6 +146,31 @@ class BaguetteJabberBot(JabberBot):
 
         self.send_simple_reply(mess, 'Liste des gens qui veulent une baguette: {}'.format(' '.join(self.orders)))
 
+    @botcmd
+    def previens(self, mess, args):
+        ''' Pour s\'ajouter dans la highlight '''
+
+        user = mess.getFrom().getResource()
+        if user not in self.highlight:
+            self.highlight.append(user)
+
+        self.send_simple_reply(mess, 'Ok, je te previendrais avant la prochaine commande de pain.')
+
+    @botcmd
+    def osef(self, mess, args):
+        ''' Pour s\'enlever de la highlight '''
+
+        user = mess.getFrom().getResource()
+        if user in self.highlight:
+            self.highlight.remove(user)
+
+        self.send_simple_reply(mess, 'Ok, va te faire voir')
+
+    @botcmd
+    def list_highlight(self, mess, args):
+        ''' Liste les gens qui veulent etre prevenu de la prochaine comamnde '''
+
+        self.send_simple_reply(mess, 'Liste des gens qui veulent etre prevenu de la prochaine commande: {}'.format(' '.join(self.highlight)))
 
 def read_password(username):
     """Read password from $HOME/.p"""
@@ -194,7 +219,7 @@ if __name__ == '__main__':
     bot.to = args.to
     bot.subject = args.subject
     bot.nick = args.nick
-    bot.highlight = args.highlight
+    bot.highlight = args.highlight.split(' ')
     # create a regex to check if a message is a direct message
     bot.direct_message_re = re.compile('^%s?[^\w]?' % args.nick)
     bot.muc_join_room(args.room, args.nick)
