@@ -29,7 +29,7 @@ class BaguetteJabberBot(JabberBot):
         self.to = None
         self.subject = None
         self.nick = None
-        self.highlight = None
+        self.highlight = []
 
         try:
             del kwargs['room']
