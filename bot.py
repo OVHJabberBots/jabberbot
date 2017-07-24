@@ -68,8 +68,8 @@ class BaguetteJabberBot(JabberBot):
         schedule.every().thursday.at("09:00").do(self.askBaguette)
         schedule.every().thursday.at("09:30").do(self.sendmail)
         # Debug schedules
-        schedule.every(10).seconds.do(self.askBaguette)
-        schedule.every(20).seconds.do(self.sendmail)
+        #schedule.every(10).seconds.do(self.askBaguette)
+        #schedule.every(20).seconds.do(self.sendmail)
 
     def callback_message(self, conn, mess):
         ''' Changes the behaviour of the JabberBot in order to allow
@@ -124,7 +124,7 @@ class BaguetteJabberBot(JabberBot):
 
     @botcmd
     def oui(self, mess, args):
-        ''' Order a baguette '''
+        ''' Commander une baguette '''
         user = mess.getFrom().getResource()
         if user not in self.orders:
             self.orders.append(user)
@@ -133,7 +133,7 @@ class BaguetteJabberBot(JabberBot):
 
     @botcmd
     def non(self, mess, args):
-        ''' Do not order a baguette '''
+        ''' Annuler la commande d'une baguette '''
         user = mess.getFrom().getResource()
         if user in self.orders:
             self.orders.remove(user)
@@ -142,9 +142,9 @@ class BaguetteJabberBot(JabberBot):
 
     @botcmd
     def list(self, mess, args):
-        ''' List guys that ordered a baguette '''
+        ''' Liste les gens qui veulent une baguette '''
 
-        self.send_simple_reply(mess, 'List of guys that ordered a baguette: {}'.format(' '.join(self.orders)))
+        self.send_simple_reply(mess, 'Liste des gens qui veulent une baguette: {}'.format(' '.join(self.orders)))
 
 
 def read_password(username):
