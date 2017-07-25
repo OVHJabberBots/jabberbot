@@ -70,8 +70,8 @@ class BaguetteJabberBot(JabberBot):
         schedule.every().thursday.at("09:00").do(self.askBaguette)
         schedule.every().thursday.at("09:30").do(self.sendmail)
         # Debug schedules
-        #schedule.every(10).seconds.do(self.askBaguette)
-        #schedule.every(20).seconds.do(self.sendmail)
+        # schedule.every(10).seconds.do(self.askBaguette)
+        # schedule.every(20).seconds.do(self.sendmail)
 
     def callback_message(self, conn, mess):
         ''' Changes the behaviour of the JabberBot in order to allow
@@ -98,9 +98,9 @@ class BaguetteJabberBot(JabberBot):
 
         if self.orders:
             msg = MIMEText("Bonjour Marie,\nEst-il possible de rapporter {} baguettes aujourd'hui ?\n\nDemandeurs :\n{}".format(
-                len(self.orders),
-                '\n'.join(self.orders),
-                ))
+                           len(self.orders),
+                           '\n'.join(self.orders),
+                           ))
             msg['Subject'] = self.subject
             msg['From'] = self.fromm
             msg['To'] = self.to
@@ -190,6 +190,19 @@ class BaguetteJabberBot(JabberBot):
             self.send_simple_reply(mess, pars.unescape(fact[0]['fact']))
         else:
             self.send_simple_reply(mess, 'Chuck Norris est malade...')
+
+    @botcmd
+    def gif(self, mess, args):
+        ''' Random GIF '''
+        # Retrieve a gif
+        tag = 'fail'  # TODO: get tag from mess
+        r = requests.get('http://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag={}'.format(tag))
+        pars = HTMLParser.HTMLParser()
+        if r.status_code == 200:
+            fact = r.json()
+            self.send_simple_reply(mess, pars.unescape(fact['data']['image_original_url']))
+        else:
+            self.send_simple_reply(mess, 'Giphy API is broken...')
 
 
 def read_password(username):
