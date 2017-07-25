@@ -121,7 +121,7 @@ class BaguetteJabberBot(JabberBot):
                       message_type="groupchat")
 
     def askBaguette(self):
-        ''' Demande au gens si ils veulent une baguette '''
+        ''' Demande aux gens s'ils veulent une baguette '''
         self.send(text="Coucou tout le monde! Voulez vous une baguette {} ?".format(self.highlight), user=self.room, message_type="groupchat")
 
     @botcmd
@@ -156,7 +156,7 @@ class BaguetteJabberBot(JabberBot):
         if user not in self.highlight:
             self.highlight.append(user)
 
-        self.send_simple_reply(mess, 'Ok, je te previendrais avant la prochaine commande de pain.')
+        self.send_simple_reply(mess, 'Ok, je te previendrai avant la prochaine commande de pain.')
 
     @botcmd
     def osef(self, mess, args):
@@ -170,9 +170,9 @@ class BaguetteJabberBot(JabberBot):
 
     @botcmd
     def list_highlight(self, mess, args):
-        ''' Liste les gens qui veulent etre prevenu de la prochaine comamnde '''
+        ''' Liste les gens qui veulent etre prevenus de la prochaine commande '''
 
-        self.send_simple_reply(mess, 'Liste des gens qui veulent etre prevenu de la prochaine commande: {}'.format(' '.join(self.highlight)))
+        self.send_simple_reply(mess, 'Liste des gens qui veulent etre prevenus de la prochaine commande: {}'.format(' '.join(self.highlight)))
 
     @botcmd
     def ping(self, mess, args):
