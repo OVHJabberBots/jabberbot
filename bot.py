@@ -12,6 +12,8 @@ import logging
 import xmpp
 import smtplib
 import schedule
+import requests
+import HTMLParser
 from email.mime.text import MIMEText
 from jabberbot import JabberBot, botcmd
 
@@ -171,6 +173,25 @@ class BaguetteJabberBot(JabberBot):
         ''' Liste les gens qui veulent etre prevenu de la prochaine comamnde '''
 
         self.send_simple_reply(mess, 'Liste des gens qui veulent etre prevenu de la prochaine commande: {}'.format(' '.join(self.highlight)))
+
+    @botcmd
+    def ping(self, mess, args):
+        ''' Tu veux jouer ? '''
+        self.send_simple_reply(mess, 'pong')
+
+    @botcmd
+    def fact(self, mess, args):
+        ''' Chuck Norris Facts '''
+        # Retrieve a fact
+        r = requests.get('http://www.chucknorrisfacts.fr/api/get?data=tri:alea;nb:1')
+        pars = HTMLParser.HTMLParser()
+        if r.status_code == 200:
+            fact = r.json()
+            print(fact)
+            self.send_simple_reply(mess, pars.unescape(fact[0]['fact']))
+        else:
+            self.send_simple_reply(mess, 'Chuck Norris est malade...')
+
 
 def read_password(username):
     """Read password from $HOME/.p"""
