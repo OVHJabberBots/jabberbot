@@ -187,7 +187,6 @@ class BaguetteJabberBot(JabberBot):
         pars = HTMLParser.HTMLParser()
         if r.status_code == 200:
             fact = r.json()
-            print(fact)
             self.send_simple_reply(mess, pars.unescape(fact[0]['fact']))
         else:
             self.send_simple_reply(mess, 'Chuck Norris est malade...')
