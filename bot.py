@@ -15,6 +15,7 @@ import schedule
 import requests
 import HTMLParser
 import random
+import datetime
 from bs4 import BeautifulSoup
 from email.mime.text import MIMEText
 from jabberbot import JabberBot, botcmd
@@ -251,7 +252,11 @@ class BaguetteJabberBot(JabberBot):
     @botcmd
     def star(self, mess, args):
         ''' Retourne le passage des bus '''
-        r = requests.get('https://data.explore.star.fr/api/records/1.0/search/?dataset=tco-bus-circulation-passages-tr&geofilter.distance=48.128336%2C+-1.625569%2C500&sort=-depart&rows=15&&timezone=Europe%2FParis', verify=False)
+        base_url = 'https://data.explore.star.fr/api/records/1.0/search/?dataset=tco-bus-circulation-passages-tr&geofilter.distance=48.128336%2C+-1.625569%2C500&sort=-depart&rows=15&&timezone=Europe%2FParis'
+        splitted_args = args.split()
+        if splitted_args and splitted_args[0]:
+            base_url += '&q=nomcourtligne%%3D%s' % splitted_args[0]
+        r = requests.get(base_url, verify=False)
         if r.status_code == 200:
             bus = []
             for record in r.json().get('records', []):
@@ -259,6 +264,9 @@ class BaguetteJabberBot(JabberBot):
                 line = record['fields']['nomcourtligne']
                 destination = record['fields']['destination']
                 passing_time = record['fields']['depart']
+                # Ugly but working
+                parsed_date = datetime.datetime.strptime(passing_time[:-6], "%Y-%m-%dT%H:%M:%S")
+                passing_time = parsed_date.strftime("%Y-%m-%d %H:%M:%S")
                 bus.append('[%s] %s -> %s - [%s]' % (line, stop, destination, passing_time))
             if len(bus):
                 self.send_simple_reply(mess, u'Voici les prochains bus:\n{}'.format('\n'.join(bus)))
