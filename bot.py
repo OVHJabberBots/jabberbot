@@ -206,14 +206,17 @@ class BaguetteJabberBot(JabberBot):
 
 
 def read_password(username):
-    """Read password from $HOME/.p"""
-    f = open(os.environ['HOME'] + "/.p", "r+")
-    for line in f.readlines():
-        tuple = line.split(":")
-        if tuple[0] == username:
-            password = tuple[1].rstrip()
-    f.close()
-    return password
+    """Read password from $HOME/.p or environment variable"""
+    if 'BOT_PASSWORD' in os.environ:
+        return os.environ['BOT_PASSWORD']
+    else:
+        f = open(os.environ['HOME'] + "/.p", "r+")
+        for line in f.readlines():
+            tuple = line.split(":")
+            if tuple[0] == username:
+                password = tuple[1].rstrip()
+        f.close()
+        return password
 
 
 def parse_args():
@@ -255,5 +258,9 @@ if __name__ == '__main__':
     bot.highlight = args.highlight.split(' ')
     # create a regex to check if a message is a direct message
     bot.direct_message_re = re.compile('^%s?[^\w]?' % args.nick)
-    bot.muc_join_room(args.room, args.nick)
+    try:
+        bot.muc_join_room(args.room, args.nick)
+    except AttributeError as e:
+        # Connection error is check after
+        pass
     bot.serve_forever()
