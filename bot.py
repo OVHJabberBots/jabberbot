@@ -248,6 +248,25 @@ class BaguetteJabberBot(JabberBot):
                 mess.getFrom().getResource(),
                 ))
 
+    @botcmd
+    def star(self, mess, args):
+        ''' Retourne le passage des bus '''
+        r = requests.get('https://data.explore.star.fr/api/records/1.0/search/?dataset=tco-bus-circulation-passages-tr&geofilter.distance=48.128336%2C+-1.625569%2C500&sort=-depart&rows=15&&timezone=Europe%2FParis', verify=False)
+        if r.status_code == 200:
+            bus = []
+            for record in r.json().get('records', []):
+                stop = record['fields']['nomarret']
+                line = record['fields']['nomcourtligne']
+                destination = record['fields']['destination']
+                passing_time = record['fields']['depart']
+                bus.append('[%s] %s -> %s - [%s]' % (line, stop, destination, passing_time))
+            if len(bus):
+                self.send_simple_reply(mess, u'Voici les prochains bus:\n{}'.format('\n'.join(bus)))
+            else:
+                self.send_simple_reply(mess, "Il n'y a pas de bus prochainement")
+        else:
+            self.send_simple_reply(mess, 'star est malade...')
+
 
 def read_password(username):
     """Read password from $HOME/.p or environment variable"""
