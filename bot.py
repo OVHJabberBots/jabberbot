@@ -14,12 +14,24 @@ import smtplib
 import schedule
 import requests
 import HTMLParser
+import random
 from bs4 import BeautifulSoup
 from email.mime.text import MIMEText
 from jabberbot import JabberBot, botcmd
 
 # Replace NS_DELAY variable by good one
 xmpp.NS_DELAY = 'urn:xmpp:delay'
+
+INJURES = [
+    "T'es juste un esti de fuck all",
+    "Tu pues du bout du bat",
+    "Mange de la merde gros sal",
+    "Câlice de chien sale",
+    "Mange un char de marde ",
+    "Tarbanak de crosseur à marde",
+    "Sti que t'es cave",
+    "En tout cas toi t'es pas une 100 Watt",
+]
 
 
 class BaguetteJabberBot(JabberBot):
@@ -220,6 +232,21 @@ class BaguetteJabberBot(JabberBot):
             self.send_simple_reply(mess, 'Voici les menus Eaty du jour:\n{}'.format('\n'.join(menus)))
         else:
             self.send_simple_reply(mess, 'Eaty est malade...')
+
+    @botcmd
+    def insulte(self, mess, args):
+        ''' Insulte quelqu'un '''
+        # Qui instulter?
+        if args:
+            self.send_simple_reply(mess, '{} {}'.format(
+                random.choice(INJURES),
+                args,
+                ))
+        else:
+            self.send_simple_reply(mess, '{} {}'.format(
+                random.choice(INJURES),
+                mess.getFrom().getResource(),
+                ))
 
 
 def read_password(username):
