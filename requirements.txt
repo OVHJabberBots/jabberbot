@@ -2,3 +2,4 @@ jabberbot
 requests
 xmpppy
 schedule
+beautifulsoup4
