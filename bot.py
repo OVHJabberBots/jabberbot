@@ -14,6 +14,7 @@ import smtplib
 import schedule
 import requests
 import HTMLParser
+from bs4 import BeautifulSoup
 from email.mime.text import MIMEText
 from jabberbot import JabberBot, botcmd
 
@@ -202,7 +203,23 @@ class BaguetteJabberBot(JabberBot):
             fact = r.json()
             self.send_simple_reply(mess, pars.unescape(fact['data']['image_original_url']))
         else:
-            self.send_simple_reply(mess, 'Giphy API is broken...')
+            self.send_simple_reply(mess, 'Giphy est malade...')
+
+    @botcmd
+    def eaty(self, mess, args):
+        ''' Retourne le menu de Eaty '''
+        # Retrieve menu
+        r = requests.get('http://www.eatyfr.wordpress.com')
+        if r.status_code == 200:
+            menus = []
+            soup = BeautifulSoup(r.text, "html.parser")
+            for i in soup.find('div', attrs={'class': 'entry-content'}).findAll("h3")[1:]:
+                menu = i.text.strip()
+                if not menu.startswith(u'°') and menu != '':
+                    menus.append(menu.encode("utf-8"))
+            self.send_simple_reply(mess, 'Voici les menus Eaty du jour:\n{}'.format('\n'.join(menus)))
+        else:
+            self.send_simple_reply(mess, 'Eaty est malade...')
 
 
 def read_password(username):
