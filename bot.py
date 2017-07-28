@@ -10,7 +10,6 @@ import argparse
 import datetime
 import logging
 import os
-import random
 import re
 import smtplib
 from email.mime.text import MIMEText
@@ -18,13 +17,13 @@ from email.mime.text import MIMEText
 import requests
 import schedule
 import xmpp
-import pymongo
 from bs4 import BeautifulSoup
 from jabberbot import JabberBot, botcmd
 from pymongo import MongoClient
 
 # Replace NS_DELAY variable by good one
 xmpp.NS_DELAY = 'urn:xmpp:delay'
+
 
 class BaguetteJabberBot(JabberBot):
     """Rennes Baguette bot"""
@@ -78,7 +77,7 @@ class BaguetteJabberBot(JabberBot):
         # Debug schedules
         # schedule.every(10).seconds.do(self.ask_baguette)
         # schedule.every(20).seconds.do(self.sendmail)
-    
+
     def connect_mongo(self, mongoUser, mongoPassword, mongoUrl):
         # Connect to mongo
         connectString = 'mongodb://' + mongoUser + ':' + mongoPassword + '@' + mongoUrl
@@ -210,7 +209,7 @@ class BaguetteJabberBot(JabberBot):
         """ Random GIF """
         # Retrieve a gif
         base_url = "http://api.giphy.com/v1/gifs/random"
-        api_params = { 'api_key': 'dc6zaTOxFJmzC' }
+        api_params = {'api_key': 'dc6zaTOxFJmzC'}
 
         if args:
             api_params['tag'] = args
@@ -244,11 +243,11 @@ class BaguetteJabberBot(JabberBot):
         ''' Insulte quelqu'un '''
         # Lire une insulte
         collection = self.mongoDb.insultes
-        elt = collection.aggregate([{ '$sample': {'size': 1} }])
+        elt = collection.aggregate([{'$sample': {'size': 1}}])
         insulte = list(elt)[0]['text']
 
         # Qui instulter?
-        if args:
+        if args and 'Boulanger' not in args:
             self.send_simple_reply(mess, u'{} {}'.format(
                 insulte,
                 args,
@@ -342,12 +341,14 @@ def read_password(username):
     print 'No password found'
     return ''
 
+
 def read_mongo_password():
     """Read password from environment variable"""
     if 'MONGO_PASSWORD' in os.environ:
         return os.environ['MONGO_PASSWORD']
     else:
         return ''
+
 
 def parse_args():
     """
