@@ -141,7 +141,7 @@ class BaguetteJabberBot(JabberBot):
                   message_type="groupchat")
 
     @botcmd
-    def oui(self, mess):
+    def oui(self, mess, args):
         """ Commander une baguette """
         user = mess.getFrom().getResource()
         if user not in self.orders:
@@ -150,7 +150,7 @@ class BaguetteJabberBot(JabberBot):
         self.send_simple_reply(mess, "OK!")
 
     @botcmd
-    def non(self, mess):
+    def non(self, mess, args):
         """ Annuler la commande d'une baguette """
         user = mess.getFrom().getResource()
         if user in self.orders:
@@ -159,14 +159,14 @@ class BaguetteJabberBot(JabberBot):
         self.send_simple_reply(mess, "OK!")
 
     @botcmd
-    def list(self, mess):
+    def list(self, mess, args):
         """ Liste les gens qui veulent une baguette """
 
         self.send_simple_reply(mess, 'Liste des gens qui veulent une baguette: {}'.format(
             ' '.join(self.orders)))
 
     @botcmd
-    def previens(self, mess):
+    def previens(self, mess, args):
         """ Pour s'ajouter dans la highlight """
 
         user = mess.getFrom().getResource()
@@ -176,7 +176,7 @@ class BaguetteJabberBot(JabberBot):
         self.send_simple_reply(mess, 'Ok, je te previendrai avant la prochaine commande de pain.')
 
     @botcmd
-    def osef(self, mess):
+    def osef(self, mess, args):
         """ Pour s\'enlever de la highlight """
 
         user = mess.getFrom().getResource()
@@ -186,19 +186,19 @@ class BaguetteJabberBot(JabberBot):
         self.send_simple_reply(mess, 'Ok, va te faire voir')
 
     @botcmd
-    def list_highlight(self, mess):
+    def list_highlight(self, mess, args):
         """ Liste les gens qui veulent etre prevenus de la prochaine commande """
         content = 'Liste des gens qui veulent etre prevenus de la prochaine commande: {}'.format(
             ' '.join(self.highlight))
         self.send_simple_reply(mess, content)
 
     @botcmd
-    def ping(self, mess):
+    def ping(self, mess, args):
         """ Tu veux jouer ? """
         self.send_simple_reply(mess, 'pong')
 
     @botcmd
-    def fact(self, mess):
+    def fact(self, mess, args):
         """ Chuck Norris Facts """
         # Retrieve a fact
         req = requests.get('http://www.chucknorrisfacts.fr/api/get?data=tri:alea;nb:1')
@@ -226,7 +226,7 @@ class BaguetteJabberBot(JabberBot):
             self.send_simple_reply(mess, 'Giphy est malade...')
 
     @botcmd
-    def eaty(self, mess):
+    def eaty(self, mess, args):
         """ Retourne le menu de Eaty """
         # Retrieve menu
         req = requests.get('http://www.eatyfr.wordpress.com')
@@ -292,6 +292,15 @@ class BaguetteJabberBot(JabberBot):
         else:
             self.send_simple_reply(mess, 'star est malade...')
 
+    @botcmd
+    def kaamelott(self, mess, args):
+        """Kaamelott"""
+        base_url = 'http://kaamelott.underfloor.io/quote/rand'
+        req = requests.get(base_url)
+        if req.status_code == 200:
+            self.send_simple_reply(mess, u'%s: "%s"' % (req.json().get('character', 'Perceval'), req.json().get('quote', "C'est pas faux")))
+        else:
+            self.send_simple_reply(mess, "J'ai été pas mal malade")
 
 def read_password(username):
     """Read password from $HOME/.p or environment variable"""
