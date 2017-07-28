@@ -18,23 +18,13 @@ from email.mime.text import MIMEText
 import requests
 import schedule
 import xmpp
+import pymongo
 from bs4 import BeautifulSoup
 from jabberbot import JabberBot, botcmd
+from pymongo import MongoClient
 
 # Replace NS_DELAY variable by good one
 xmpp.NS_DELAY = 'urn:xmpp:delay'
-
-INJURES = [
-    "T'es juste un esti de fuck all",
-    "Tu pues du bout du bat",
-    "Mange de la merde gros sal",
-    "Câlice de chien sale",
-    "Mange un char de marde ",
-    "Tarbanak de crosseur à marde",
-    "Sti que t'es cave",
-    "En tout cas toi t'es pas une 100 Watt",
-]
-
 
 class BaguetteJabberBot(JabberBot):
     """Rennes Baguette bot"""
@@ -88,6 +78,12 @@ class BaguetteJabberBot(JabberBot):
         # Debug schedules
         # schedule.every(10).seconds.do(self.ask_baguette)
         # schedule.every(20).seconds.do(self.sendmail)
+    
+    def connect_mongo(self, mongoUser, mongoPassword, mongoUrl):
+        # Connect to mongo
+        connectString = 'mongodb://' + mongoUser + ':' + mongoPassword + '@' + mongoUrl
+        mongoClient = MongoClient(connectString)
+        return mongoClient.boulanger
 
     def callback_message(self, conn, mess):
         """ Changes the behaviour of the JabberBot in order to allow
@@ -216,11 +212,12 @@ class BaguetteJabberBot(JabberBot):
     def gif(self, mess, args):
         """ Random GIF """
         # Retrieve a gif
-        base_url = "http://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC"
-        splitted_args = args.split()
-        if splitted_args and splitted_args[0]:
-            base_url += "&tag={}".format(splitted_args[0])
-        req = requests.get(base_url)
+        base_url = "http://api.giphy.com/v1/gifs/random"
+        api_params = { 'api_key': 'dc6zaTOxFJmzC' }
+
+        if args:
+            api_params['tag'] = args
+        req = requests.get(base_url, params=api_params)
         pars = HTMLParser.HTMLParser()
         if req.status_code == 200:
             fact = req.json()
@@ -247,16 +244,21 @@ class BaguetteJabberBot(JabberBot):
 
     @botcmd
     def insulte(self, mess, args):
-        """ Insulte quelqu'un """
+        ''' Insulte quelqu'un '''
+        # Lire une insulte
+        collection = self.mongoDb.insultes
+        elt = collection.aggregate([{ '$sample': {'size': 1} }])
+        insulte = list(elt)[0]['text']
+
         # Qui instulter?
         if args:
-            self.send_simple_reply(mess, '{} {}'.format(
-                random.choice(INJURES),
+            self.send_simple_reply(mess, u'{} {}'.format(
+                insulte,
                 args,
             ))
         else:
-            self.send_simple_reply(mess, '{} {}'.format(
-                random.choice(INJURES),
+            self.send_simple_reply(mess, u'{} {}'.format(
+                insulte,
                 mess.getFrom().getResource(),
             ))
 
@@ -297,28 +299,28 @@ class BaguetteJabberBot(JabberBot):
 
     @botcmd
     def piment(self, mess, args):
-        ''' Retourne le plat du jour au piment rouge'''
+        """Retourne le plat du jour au piment rouge"""
         now = datetime.datetime.now()
 
-        menu = {
-            "BA MI": "Nouilles de blé, crevettes marinées, raviolis frits, légumes, crudité, sauce sucrée",
-            "Soupe raviolis": "Nouilles chinoises, raviolis aux crevettes, poulet, herbes aromatiques, soja",
-            "Bo Bun": "Vermicelles de riz, boeuf woké au curry, cacahuètes concassées, nems, crudités",
-            "Pad Thai": "Pâtes de riz, poulet, tofu, cacahuètes concassées, soja, ciboulette, sauce caramélisée",
-            "Ragoût vietnamien": "Pâtes de riz, assortiment de boeuf, herbes aromatiques, bouillon de boeuf"}
+        description = {
+            u"BA MI": u"Nouilles de blé, crevettes marinées, raviolis frits, légumes, crudité, sauce sucrée",
+            u"Soupe raviolis": u"Nouilles chinoises, raviolis aux crevettes, poulet, herbes aromatiques, soja",
+            u"Bo Bun": u"Vermicelles de riz, boeuf woké au curry, cacahuètes concassées, nems, crudités",
+            u"Pad Thai": u"Pâtes de riz, poulet, tofu, cacahuètes concassées, soja, ciboulette, sauce caramélisée",
+            u"Ragoût vietnamien": u"Pâtes de riz, assortiment de boeuf, herbes aromatiques, bouillon de boeuf"}
 
-        semaine = {
-            0: ['BA MI'],
-            1: ['Soupe raviolis'],
-            2: ['Bo Bun'],
-            3: ['Bo Bun'],
-            4: ['Pad Thai', 'Ragoût vietnamien']}
+        menu = {
+            0: [u'BA MI'],
+            1: [u'Soupe raviolis'],
+            2: [u'Bo Bun'],
+            3: [u'Bo Bun'],
+            4: [u'Pad Thai', u'Ragoût vietnamien']}
 
         if now.weekday() > 4:
             self.send_simple_reply(mess, u"Eh oh... J'suis en week end moi reviens lundi")
         else:
             self.send_simple_reply(mess, u"Aujourd'hui le menu de piment rouge est \n%s" % '\n'.join(
-                ['%s => %s' % (ele, menu[ele]) for ele in semaine[now.weekday()]]))
+                [u'%s => %s' % (ele, description[ele]) for ele in menu[now.weekday()]]))
 
     @botcmd
     def kaamelott(self, mess, args):
@@ -343,6 +345,12 @@ def read_password(username):
     print 'No password found'
     return ''
 
+def read_mongo_password():
+    """Read password from environment variable"""
+    if 'MONGO_PASSWORD' in os.environ:
+        return os.environ['MONGO_PASSWORD']
+    else:
+        return ''
 
 def parse_args():
     """
@@ -368,6 +376,12 @@ def parse_args():
     parser.add_argument("--subject",
                         help="Subject of mail. Default is Commande de baguette",
                         default="Commande de baguette")
+    parser.add_argument("--mongoUser",
+                        help="Mongo db user",
+                        default="boulanger")
+    parser.add_argument("--mongoUrl",
+                        help="Mongo db user",
+                        default="ds125183.mlab.com:25183/boulanger")
     return parser.parse_args()
 
 
@@ -381,6 +395,7 @@ def main():
     bot.mail_to = main_args.to
     bot.subject = main_args.subject
     bot.nick = main_args.nick
+    bot.mongoDb = bot.connect_mongo(main_args.mongoUser, read_mongo_password(), main_args.mongoUrl)
     bot.highlight = main_args.highlight.split(' ')
     # create a regex to check if a message is a direct message
     bot.direct_message_re = re.compile(r'^%s?[^\w]?' % main_args.nick)
