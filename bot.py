@@ -213,9 +213,11 @@ class BaguetteJabberBot(JabberBot):
     def gif(self, mess):
         """ Random GIF """
         # Retrieve a gif
-        tag = 'fail'  # TODO: get tag from mess
-        req = requests.get(
-            'http://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag={}'.format(tag))
+        base_url = "http://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC"
+        splitted_args = args.split()
+        if splitted_args and splitted_args[0]:
+            base_url += "&tag={}".format(splitted_args[0])
+        req = requests.get(base_url)
         pars = HTMLParser.HTMLParser()
         if req.status_code == 200:
             fact = req.json()
