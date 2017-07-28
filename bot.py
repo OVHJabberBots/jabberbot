@@ -209,11 +209,12 @@ class BaguetteJabberBot(JabberBot):
     def gif(self, mess, args):
         """ Random GIF """
         # Retrieve a gif
-        base_url = "http://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC"
-        splitted_args = args.split()
-        if splitted_args and splitted_args[0]:
-            base_url += "&tag={}".format(splitted_args[0])
-        req = requests.get(base_url)
+        base_url = "http://api.giphy.com/v1/gifs/random"
+        api_params = { 'api_key': 'dc6zaTOxFJmzC' }
+
+        if args:
+            api_params['tag'] = args
+        req = requests.get(base_url, params=api_params)
         pars = HTMLParser.HTMLParser()
         if req.status_code == 200:
             fact = req.json()
@@ -295,28 +296,28 @@ class BaguetteJabberBot(JabberBot):
 
     @botcmd
     def piment(self, mess, args):
-        ''' Retourne le plat du jour au piment rouge'''
+        """Retourne le plat du jour au piment rouge"""
         now = datetime.datetime.now()
 
-        menu = {
-            "BA MI": "Nouilles de blé, crevettes marinées, raviolis frits, légumes, crudité, sauce sucrée",
-            "Soupe raviolis": "Nouilles chinoises, raviolis aux crevettes, poulet, herbes aromatiques, soja",
-            "Bo Bun": "Vermicelles de riz, boeuf woké au curry, cacahuètes concassées, nems, crudités",
-            "Pad Thai": "Pâtes de riz, poulet, tofu, cacahuètes concassées, soja, ciboulette, sauce caramélisée",
-            "Ragoût vietnamien": "Pâtes de riz, assortiment de boeuf, herbes aromatiques, bouillon de boeuf"}
+        description = {
+            u"BA MI": u"Nouilles de blé, crevettes marinées, raviolis frits, légumes, crudité, sauce sucrée",
+            u"Soupe raviolis": u"Nouilles chinoises, raviolis aux crevettes, poulet, herbes aromatiques, soja",
+            u"Bo Bun": u"Vermicelles de riz, boeuf woké au curry, cacahuètes concassées, nems, crudités",
+            u"Pad Thai": u"Pâtes de riz, poulet, tofu, cacahuètes concassées, soja, ciboulette, sauce caramélisée",
+            u"Ragoût vietnamien": u"Pâtes de riz, assortiment de boeuf, herbes aromatiques, bouillon de boeuf"}
 
-        semaine = {
-            0: ['BA MI'],
-            1: ['Soupe raviolis'],
-            2: ['Bo Bun'],
-            3: ['Bo Bun'],
-            4: ['Pad Thai', 'Ragoût vietnamien']}
+        menu = {
+            0: [u'BA MI'],
+            1: [u'Soupe raviolis'],
+            2: [u'Bo Bun'],
+            3: [u'Bo Bun'],
+            4: [u'Pad Thai', u'Ragoût vietnamien']}
 
         if now.weekday() > 4:
             self.send_simple_reply(mess, u"Eh oh... J'suis en week end moi reviens lundi")
         else:
             self.send_simple_reply(mess, u"Aujourd'hui le menu de piment rouge est \n%s" % '\n'.join(
-                ['%s => %s' % (ele, menu[ele]) for ele in semaine[now.weekday()]]))
+                [u'%s => %s' % (ele, description[ele]) for ele in menu[now.weekday()]]))
 
     @botcmd
     def kaamelott(self, mess, args):
