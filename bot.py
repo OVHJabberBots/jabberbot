@@ -291,24 +291,31 @@ class BaguetteJabberBot(JabberBot):
                 self.send_simple_reply(mess, "Il n'y a pas de bus prochainement")
         else:
             self.send_simple_reply(mess, 'star est malade...')
-            
-   @botcmd
+
+    @botcmd
     def piment(self, mess, args):
         ''' Retourne le plat du jour au piment rouge'''
         now = datetime.datetime.now()
-        
-        menu = {"BA MI":"Nouilles de blé, crevettes marinées, raviolis frits, légumes, crudité, sauce sucrée",
-          "Soupe raviolis":"Nouilles chinoises, raviolis aux crevettes, poulet, herbes aromatiques, soja",
-          "Bo Bun":"Vermicelles de riz, boeuf woké au curry, cacahuètes concassées, nems, crudités",
-          "Pad Thai":"Pâtes de riz, poulet, tofu, cacahuètes concassées, soja, ciboulette, sauce caramélisée",
-          "Ragoût vietnamien":"Pâtes de riz, assortiment de boeuf, herbes aromatiques, bouillon de boeuf"}
-        
-        semaine = {0:['BA MI'], 1:['Soupe raviolis'], 2:['Bo Bun'], 3:['Bo Bun'], 4:['Pad Thai', 'Ragoût vietnamien']}
-        
+
+        menu = {
+            "BA MI": "Nouilles de blé, crevettes marinées, raviolis frits, légumes, crudité, sauce sucrée",
+            "Soupe raviolis": "Nouilles chinoises, raviolis aux crevettes, poulet, herbes aromatiques, soja",
+            "Bo Bun": "Vermicelles de riz, boeuf woké au curry, cacahuètes concassées, nems, crudités",
+            "Pad Thai": "Pâtes de riz, poulet, tofu, cacahuètes concassées, soja, ciboulette, sauce caramélisée",
+            "Ragoût vietnamien": "Pâtes de riz, assortiment de boeuf, herbes aromatiques, bouillon de boeuf"}
+
+        semaine = {
+            0: ['BA MI'],
+            1: ['Soupe raviolis'],
+            2: ['Bo Bun'],
+            3: ['Bo Bun'],
+            4: ['Pad Thai', 'Ragoût vietnamien']}
+
         if now.weekday() > 4:
             self.send_simple_reply(mess, u"Eh oh... J'suis en week end moi reviens lundi")
         else:
-            self.send_simple_reply(mess, u"Aujourd'hui le menu de piment rouge est \n%s" % '\n'.join(['%s => %s' % (ele, menu[ele]) for ele in semaine[now.weekday()]])) 
+            self.send_simple_reply(mess, u"Aujourd'hui le menu de piment rouge est \n%s" % '\n'.join(
+                ['%s => %s' % (ele, menu[ele]) for ele in semaine[now.weekday()]]))
 
     @botcmd
     def kaamelott(self, mess, args):
@@ -319,6 +326,7 @@ class BaguetteJabberBot(JabberBot):
             self.send_simple_reply(mess, u'%s: "%s"' % (req.json().get('character', 'Perceval'), req.json().get('quote', "C'est pas faux")))
         else:
             self.send_simple_reply(mess, "J'ai été pas mal malade")
+
 
 def read_password(username):
     """Read password from $HOME/.p or environment variable"""
