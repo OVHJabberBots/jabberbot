@@ -210,7 +210,7 @@ class BaguetteJabberBot(JabberBot):
             self.send_simple_reply(mess, 'Chuck Norris est malade...')
 
     @botcmd
-    def gif(self, mess):
+    def gif(self, mess, args):
         """ Random GIF """
         # Retrieve a gif
         base_url = "http://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC"
@@ -259,7 +259,7 @@ class BaguetteJabberBot(JabberBot):
 
     @botcmd
     def star(self, mess, args):
-        """ Retourne le passage des bus 
+        """ Retourne le passage des bus
         Boulanger star [line_code]
         """
         api_params = {
