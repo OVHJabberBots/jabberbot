@@ -18,23 +18,15 @@ from email.mime.text import MIMEText
 import requests
 import schedule
 import xmpp
+import pymongo
+import HTMLParser
+import random
 from bs4 import BeautifulSoup
 from jabberbot import JabberBot, botcmd
+from pymongo import MongoClient
 
 # Replace NS_DELAY variable by good one
 xmpp.NS_DELAY = 'urn:xmpp:delay'
-
-INJURES = [
-    "T'es juste un esti de fuck all",
-    "Tu pues du bout du bat",
-    "Mange de la merde gros sal",
-    "Câlice de chien sale",
-    "Mange un char de marde ",
-    "Tarbanak de crosseur à marde",
-    "Sti que t'es cave",
-    "En tout cas toi t'es pas une 100 Watt",
-]
-
 
 class BaguetteJabberBot(JabberBot):
     """Rennes Baguette bot"""
@@ -88,6 +80,12 @@ class BaguetteJabberBot(JabberBot):
         # Debug schedules
         # schedule.every(10).seconds.do(self.ask_baguette)
         # schedule.every(20).seconds.do(self.sendmail)
+    
+    def connect_mongo(self, mongoUser, mongoPassword, mongoUrl):
+        # Connect to mongo
+        connectString = 'mongodb://' + mongoUser + ':' + mongoPassword + '@' + mongoUrl
+        mongoClient = MongoClient(connectString)
+        return mongoClient.boulanger
 
     def callback_message(self, conn, mess):
         """ Changes the behaviour of the JabberBot in order to allow
@@ -244,16 +242,21 @@ class BaguetteJabberBot(JabberBot):
 
     @botcmd
     def insulte(self, mess, args):
-        """ Insulte quelqu'un """
+        ''' Insulte quelqu'un '''
+        # Lire une insulte
+        collection = self.mongoDb.insultes
+        elt = collection.aggregate([{ '$sample': {'size': 1} }])
+        insulte = list(elt)[0]['text']
+
         # Qui instulter?
         if args:
             self.send_simple_reply(mess, '{} {}'.format(
-                random.choice(INJURES),
+                insulte,
                 args,
             ))
         else:
             self.send_simple_reply(mess, '{} {}'.format(
-                random.choice(INJURES),
+                insulte,
                 mess.getFrom().getResource(),
             ))
 
@@ -305,6 +308,12 @@ def read_password(username):
     print 'No password found'
     return ''
 
+def read_mongo_password():
+    """Read password from environment variable"""
+    if 'MONGO_PASSWORD' in os.environ:
+        return os.environ['MONGO_PASSWORD']
+    else:
+        return ''
 
 def parse_args():
     """
@@ -330,20 +339,29 @@ def parse_args():
     parser.add_argument("--subject",
                         help="Subject of mail. Default is Commande de baguette",
                         default="Commande de baguette")
+    parser.add_argument("--mongoUser",
+                        help="Mongo db user",
+                        default="boulanger")
+    parser.add_argument("--mongoPassword",
+                        help="Mongo db password")
+    parser.add_argument("--mongoUrl",
+                        help="Mongo db user",
+                        default="ds125183.mlab.com:25183/boulanger")
     return parser.parse_args()
 
 
 def main():
     """Connect to the server and run the bot forever"""
-    main_args = parse_args()
-    password = read_password(main_args.username.replace("@jabber.ovh.net", ""))
+    args = parse_args()
+    password = read_password(args.username.replace("@jabber.ovh.net", ""))
     bot = BaguetteJabberBot(main_args.username, password)
     bot.room = main_args.room
     bot.fromm = main_args.fromm
-    bot.mail_to = main_args.to
+    bot.to = main_args.to
     bot.subject = main_args.subject
     bot.nick = main_args.nick
-    bot.highlight = main_args.highlight.split(' ')
+    bot.mongoDb = bot.connect_mongo(main_args.mongoUser, read_mongo_password(), main_args.mongoUrl)
+    bot.highlight = args.highlight.split(' ')
     # create a regex to check if a message is a direct message
     bot.direct_message_re = re.compile(r'^%s?[^\w]?' % main_args.nick)
     try:
