@@ -19,8 +19,6 @@ import requests
 import schedule
 import xmpp
 import pymongo
-import HTMLParser
-import random
 from bs4 import BeautifulSoup
 from jabberbot import JabberBot, botcmd
 from pymongo import MongoClient
@@ -250,12 +248,12 @@ class BaguetteJabberBot(JabberBot):
 
         # Qui instulter?
         if args:
-            self.send_simple_reply(mess, '{} {}'.format(
+            self.send_simple_reply(mess, u'{} {}'.format(
                 insulte,
                 args,
             ))
         else:
-            self.send_simple_reply(mess, '{} {}'.format(
+            self.send_simple_reply(mess, u'{} {}'.format(
                 insulte,
                 mess.getFrom().getResource(),
             ))
@@ -342,8 +340,6 @@ def parse_args():
     parser.add_argument("--mongoUser",
                         help="Mongo db user",
                         default="boulanger")
-    parser.add_argument("--mongoPassword",
-                        help="Mongo db password")
     parser.add_argument("--mongoUrl",
                         help="Mongo db user",
                         default="ds125183.mlab.com:25183/boulanger")
@@ -352,16 +348,16 @@ def parse_args():
 
 def main():
     """Connect to the server and run the bot forever"""
-    args = parse_args()
-    password = read_password(args.username.replace("@jabber.ovh.net", ""))
+    main_args = parse_args()
+    password = read_password(main_args.username.replace("@jabber.ovh.net", ""))
     bot = BaguetteJabberBot(main_args.username, password)
     bot.room = main_args.room
     bot.fromm = main_args.fromm
-    bot.to = main_args.to
+    bot.mail_to = main_args.to
     bot.subject = main_args.subject
     bot.nick = main_args.nick
     bot.mongoDb = bot.connect_mongo(main_args.mongoUser, read_mongo_password(), main_args.mongoUrl)
-    bot.highlight = args.highlight.split(' ')
+    bot.highlight = main_args.highlight.split(' ')
     # create a regex to check if a message is a direct message
     bot.direct_message_re = re.compile(r'^%s?[^\w]?' % main_args.nick)
     try:
