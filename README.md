@@ -3,7 +3,7 @@
 ## Install
 
 ``` bash
-pip install --user --pre -r requirement.txt
+pip install --user --pre -r requirements.txt
 ```
 
 ## Usage
