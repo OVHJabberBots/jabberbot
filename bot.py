@@ -222,23 +222,6 @@ class BaguetteJabberBot(JabberBot):
             self.send_simple_reply(mess, 'Giphy est malade...')
 
     @botcmd
-    def eaty(self, mess, args):
-        """ Retourne le menu de Eaty """
-        # Retrieve menu
-        req = requests.get('http://www.eatyfr.wordpress.com')
-        if req.status_code == 200:
-            menus = []
-            soup = BeautifulSoup(req.text, "html.parser")
-            for i in soup.find('div', attrs={'class': 'entry-content'}).findAll("h3")[1:]:
-                menu = i.text.strip()
-                if not menu.startswith(u'°') and menu != '':
-                    menus.append(menu.encode("utf-8"))
-            self.send_simple_reply(mess,
-                                   'Voici les menus Eaty du jour:\n{}'.format('\n'.join(menus)))
-        else:
-            self.send_simple_reply(mess, 'Eaty est malade...')
-
-    @botcmd
     def insulte(self, mess, args):
         ''' Insulte quelqu'un '''
         # Lire une insulte
@@ -247,16 +230,62 @@ class BaguetteJabberBot(JabberBot):
         insulte = list(elt)[0]['text']
 
         # Qui instulter?
-        if args and 'Boulanger' not in args:
-            self.send_simple_reply(mess, u'{} {}'.format(
-                insulte,
-                args,
-            ))
+        if args and self.nick not in args:
+            self.send_simple_reply(mess, u'{}'.format(
+                insulte.replace("%guy%", args
+            )))
         else:
-            self.send_simple_reply(mess, u'{} {}'.format(
-                insulte,
-                mess.getFrom().getResource(),
-            ))
+            self.send_simple_reply(mess, u'{}'.format(
+                insulte.replace("%guy%", mess.getFrom().getResource()
+            )))
+
+    @botcmd
+    def resto(self, mess, args):
+        """ Retourne les menus de resto """
+
+        # List all restorants
+        if (args == ""):
+            self.send_simple_reply(mess, "Tu veux dire quoi ?\n * " + self.nick + " resto eaty\n * " + self.nick + " resto piment")
+        
+        # Eaty
+        if (args == "eaty"):
+            # Retrieve menu
+            req = requests.get('http://www.eatyfr.wordpress.com')
+            if req.status_code == 200:
+                menus = []
+                soup = BeautifulSoup(req.text, "html.parser")
+                for i in soup.find('div', attrs={'class': 'entry-content'}).findAll("h3")[1:]:
+                    menu = i.text.strip()
+                    if not menu.startswith(u'°') and menu != '':
+                        menus.append(menu.encode("utf-8"))
+                self.send_simple_reply(mess,
+                                    'Voici les menus Eaty du jour:\n{}'.format('\n'.join(menus)))
+            else:
+                self.send_simple_reply(mess, 'Eaty est malade...')
+        
+        # Piment rouge
+        if (args == "piment"):
+            now = datetime.datetime.now()
+
+            description = {
+                u"BA MI": u"Nouilles de blé, crevettes marinées, raviolis frits, légumes, crudité, sauce sucrée",
+                u"Soupe raviolis": u"Nouilles chinoises, raviolis aux crevettes, poulet, herbes aromatiques, soja",
+                u"Bo Bun": u"Vermicelles de riz, boeuf woké au curry, cacahuètes concassées, nems, crudités",
+                u"Pad Thai": u"Pâtes de riz, poulet, tofu, cacahuètes concassées, soja, ciboulette, sauce caramélisée",
+                u"Ragoût vietnamien": u"Pâtes de riz, assortiment de boeuf, herbes aromatiques, bouillon de boeuf"}
+
+            menu = {
+                0: [u'BA MI'],
+                1: [u'Soupe raviolis'],
+                2: [u'Bo Bun'],
+                3: [u'Bo Bun'],
+                4: [u'Pad Thai', u'Ragoût vietnamien']}
+
+            if now.weekday() > 4:
+                self.send_simple_reply(mess, u"Eh oh... J'suis en week end moi reviens lundi")
+            else:
+                self.send_simple_reply(mess, u"Aujourd'hui le menu de piment rouge est \n%s" % '\n'.join(
+                    [u'%s => %s' % (ele, description[ele]) for ele in menu[now.weekday()]]))
 
     @botcmd
     def star(self, mess, args):
@@ -292,31 +321,6 @@ class BaguetteJabberBot(JabberBot):
                 self.send_simple_reply(mess, "Il n'y a pas de bus prochainement")
         else:
             self.send_simple_reply(mess, 'star est malade...')
-
-    @botcmd
-    def piment(self, mess, args):
-        """Retourne le plat du jour au piment rouge"""
-        now = datetime.datetime.now()
-
-        description = {
-            u"BA MI": u"Nouilles de blé, crevettes marinées, raviolis frits, légumes, crudité, sauce sucrée",
-            u"Soupe raviolis": u"Nouilles chinoises, raviolis aux crevettes, poulet, herbes aromatiques, soja",
-            u"Bo Bun": u"Vermicelles de riz, boeuf woké au curry, cacahuètes concassées, nems, crudités",
-            u"Pad Thai": u"Pâtes de riz, poulet, tofu, cacahuètes concassées, soja, ciboulette, sauce caramélisée",
-            u"Ragoût vietnamien": u"Pâtes de riz, assortiment de boeuf, herbes aromatiques, bouillon de boeuf"}
-
-        menu = {
-            0: [u'BA MI'],
-            1: [u'Soupe raviolis'],
-            2: [u'Bo Bun'],
-            3: [u'Bo Bun'],
-            4: [u'Pad Thai', u'Ragoût vietnamien']}
-
-        if now.weekday() > 4:
-            self.send_simple_reply(mess, u"Eh oh... J'suis en week end moi reviens lundi")
-        else:
-            self.send_simple_reply(mess, u"Aujourd'hui le menu de piment rouge est \n%s" % '\n'.join(
-                [u'%s => %s' % (ele, description[ele]) for ele in menu[now.weekday()]]))
 
     @botcmd
     def kaamelott(self, mess, args):
