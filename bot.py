@@ -247,16 +247,14 @@ class BaguetteJabberBot(JabberBot):
         insulte = list(elt)[0]['text']
 
         # Qui instulter?
-        if args and 'Boulanger' not in args:
-            self.send_simple_reply(mess, u'{} {}'.format(
-                insulte,
-                args,
-            ))
+        if args and self.nick not in args:
+            self.send_simple_reply(mess, u'{}'.format(
+                insulte.replace("%guy%", args
+            )))
         else:
-            self.send_simple_reply(mess, u'{} {}'.format(
-                insulte,
-                mess.getFrom().getResource(),
-            ))
+            self.send_simple_reply(mess, u'{}'.format(
+                insulte.replace("%guy%", mess.getFrom().getResource()
+            )))
 
     @botcmd
     def star(self, mess, args):
