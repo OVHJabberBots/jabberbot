@@ -134,33 +134,38 @@ class BaguetteJabberBot(JabberBot):
         self.send(text="Coucou tout le monde! Voulez vous une baguette {} ?".format(self.highlight),
                   user=self.room,
                   message_type="groupchat")
-
+    
     @botcmd
+    def baguette(self, mess, args):
+        """Tout pour commande une baguette"""
+        actions = {'oui': self.oui, 'non': self.non, 'list': self.list, 'previens': self.previens, 'list_highlight': self.list_highlight, 'osef': self.osef}
+        commands = '\n'.join(['%s baguette %s (%s)' % (self.nick, action_name, action_def.__doc__) for action_name, action_def in actions.iteritems()])
+        actions[''] = lambda *args : '%s\n%s' % ('Tu veux dire quoi ?', commands)
+        def default_action(*args): return '%s\n%s' % ('Je ne cromprends pas', commands)
+        self.send_simple_reply(mess, actions.get(args.strip(), default_action)(mess, args))
+
+
     def oui(self, mess, args):
         """ Commander une baguette """
         user = mess.getFrom().getResource()
         if user not in self.orders:
             self.orders.append(user)
 
-        self.send_simple_reply(mess, "OK!")
+        return "OK!"
 
-    @botcmd
     def non(self, mess, args):
         """ Annuler la commande d'une baguette """
         user = mess.getFrom().getResource()
         if user in self.orders:
             self.orders.remove(user)
 
-        self.send_simple_reply(mess, "OK!")
+        return "OK!"
 
-    @botcmd
     def list(self, mess, args):
         """ Liste les gens qui veulent une baguette """
 
-        self.send_simple_reply(mess, 'Liste des gens qui veulent une baguette: {}'.format(
-            ' '.join(self.orders)))
+        return 'Liste des gens qui veulent une baguette: {}'.format(' '.join(self.orders))
 
-    @botcmd
     def previens(self, mess, args):
         """ Pour s'ajouter dans la highlight """
 
@@ -168,24 +173,22 @@ class BaguetteJabberBot(JabberBot):
         if user not in self.highlight:
             self.highlight.append(user)
 
-        self.send_simple_reply(mess, 'Ok, je te previendrai avant la prochaine commande de pain.')
+        return 'Ok, je te previendrai avant la prochaine commande de pain.'
 
-    @botcmd
+
     def osef(self, mess, args):
-        """ Pour s\'enlever de la highlight """
+        """ Pour s'enlever de la highlight """
 
         user = mess.getFrom().getResource()
         if user in self.highlight:
             self.highlight.remove(user)
 
-        self.send_simple_reply(mess, 'Ok, va te faire voir')
+        return 'Ok, va te faire voir'
 
-    @botcmd
     def list_highlight(self, mess, args):
         """ Liste les gens qui veulent etre prevenus de la prochaine commande """
-        content = 'Liste des gens qui veulent etre prevenus de la prochaine commande: {}'.format(
+        return 'Liste des gens qui veulent etre prevenus de la prochaine commande: {}'.format(
             ' '.join(self.highlight))
-        self.send_simple_reply(mess, content)
 
     @botcmd
     def ping(self, mess, args):
@@ -247,7 +250,7 @@ class BaguetteJabberBot(JabberBot):
         actions[''] = lambda : '%s\n%s' % ('Tu veux dire quoi ?', list_of_resto)
         def default_action(): return '%s\n%s' % ('Je ne cromprends pas', list_of_resto)
 
-        self.send_simple_reply(mess, actions.get(args, default_action)())
+        self.send_simple_reply(mess, actions.get(args.strip(), default_action)())
 
     @staticmethod
     def eaty():
@@ -350,10 +353,7 @@ def read_password(username):
 
 def read_mongo_password():
     """Read password from environment variable"""
-    if 'MONGO_PASSWORD' in os.environ:
-        return os.environ['MONGO_PASSWORD']
-    else:
-        return ''
+    return os.environ.get('MONGO_PASSWORD', '')
 
 
 def parse_args():
