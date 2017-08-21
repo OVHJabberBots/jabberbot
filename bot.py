@@ -134,18 +134,26 @@ class BaguetteJabberBot(JabberBot):
         self.send(text="Coucou tout le monde! Voulez vous une baguette {} ?".format(self.highlight),
                   user=self.room,
                   message_type="groupchat")
-    
+
     @botcmd
     def baguette(self, mess, args):
         """Tout pour commande une baguette"""
-        actions = {'oui': self.oui, 'non': self.non, 'list': self.list, 'previens': self.previens, 'list_highlight': self.list_highlight, 'osef': self.osef}
+        actions = {
+            'commande': self.commande,
+            'annule': self.annule,
+            'liste': self.liste,
+            'notif': self.notif,
+            'liste-notif': self.list_notif,
+            'no-notif': self.no_notif
+        }
         commands = '\n'.join(['%s baguette %s (%s)' % (self.nick, action_name, action_def.__doc__) for action_name, action_def in actions.iteritems()])
-        actions[''] = lambda *args : '%s\n%s' % ('Tu veux dire quoi ?', commands)
-        def default_action(*args): return '%s\n%s' % ('Je ne cromprends pas', commands)
+        actions[''] = lambda *args: '%s\n%s' % ('Tu veux dire quoi ?', commands)
+
+        def default_action(*args):
+            return '%s\n%s' % ('Je ne cromprends pas', commands)
         self.send_simple_reply(mess, actions.get(args.strip(), default_action)(mess, args))
 
-
-    def oui(self, mess, args):
+    def commande(self, mess, args):
         """ Commander une baguette """
         user = mess.getFrom().getResource()
         if user not in self.orders:
@@ -153,7 +161,7 @@ class BaguetteJabberBot(JabberBot):
 
         return "OK!"
 
-    def non(self, mess, args):
+    def annule(self, mess, args):
         """ Annuler la commande d'une baguette """
         user = mess.getFrom().getResource()
         if user in self.orders:
@@ -161,13 +169,13 @@ class BaguetteJabberBot(JabberBot):
 
         return "OK!"
 
-    def list(self, mess, args):
+    def liste(self, mess, args):
         """ Liste les gens qui veulent une baguette """
 
         return 'Liste des gens qui veulent une baguette: {}'.format(' '.join(self.orders))
 
-    def previens(self, mess, args):
-        """ Pour s'ajouter dans la highlight """
+    def notif(self, mess, args):
+        """ Pour s'ajouter dans la liste des gens prevenus """
 
         user = mess.getFrom().getResource()
         if user not in self.highlight:
@@ -175,9 +183,8 @@ class BaguetteJabberBot(JabberBot):
 
         return 'Ok, je te previendrai avant la prochaine commande de pain.'
 
-
-    def osef(self, mess, args):
-        """ Pour s'enlever de la highlight """
+    def no_notif(self, mess, args):
+        """ Pour s'enlever de la liste des gens prevenus """
 
         user = mess.getFrom().getResource()
         if user in self.highlight:
@@ -185,7 +192,7 @@ class BaguetteJabberBot(JabberBot):
 
         return 'Ok, va te faire voir'
 
-    def list_highlight(self, mess, args):
+    def list_notif(self, mess, args):
         """ Liste les gens qui veulent etre prevenus de la prochaine commande """
         return 'Liste des gens qui veulent etre prevenus de la prochaine commande: {}'.format(
             ' '.join(self.highlight))
@@ -247,8 +254,10 @@ class BaguetteJabberBot(JabberBot):
         """ Retourne les menus de resto """
         actions = {'piment': self.piment, 'eaty': self.eaty}
         list_of_resto = '\n'.join(['%s resto %s' % (self.nick, rest) for rest in actions.keys()])
-        actions[''] = lambda : '%s\n%s' % ('Tu veux dire quoi ?', list_of_resto)
-        def default_action(): return '%s\n%s' % ('Je ne cromprends pas', list_of_resto)
+        actions[''] = lambda: '%s\n%s' % ('Tu veux dire quoi ?', list_of_resto)
+
+        def default_action():
+            return '%s\n%s' % ('Je ne cromprends pas', list_of_resto)
 
         self.send_simple_reply(mess, actions.get(args.strip(), default_action)())
 
