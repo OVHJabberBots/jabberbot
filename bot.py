@@ -153,6 +153,15 @@ class BaguetteJabberBot(JabberBot):
             return '%s\n%s' % ('Je ne cromprends pas', commands)
         self.send_simple_reply(mess, actions.get(args.strip(), default_action)(mess, args))
 
+    @botcmd
+    def oui(self, mess, args):
+        """ Commander une baguette (shortcut) """
+        user = mess.getFrom().getResource()
+        if user not in self.orders:
+            self.orders.append(user)
+
+        return "OK!"
+
     def commande(self, mess, args):
         """ Commander une baguette """
         user = mess.getFrom().getResource()
