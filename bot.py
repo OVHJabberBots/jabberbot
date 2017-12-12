@@ -36,7 +36,6 @@ class BaguetteJabberBot(JabberBot):
         self.mail_to = None
         self.subject = None
         self.nick = None
-        self.highlight = []
 
         try:
             del kwargs['room']
@@ -44,7 +43,6 @@ class BaguetteJabberBot(JabberBot):
             del kwargs['to']
             del kwargs['subject']
             del kwargs['nick']
-            del kwargs['highlight']
         except KeyError:
             pass
 
@@ -71,9 +69,13 @@ class BaguetteJabberBot(JabberBot):
 
         # Add some schedules
         schedule.every().monday.at("09:00").do(self.ask_baguette)
-        schedule.every().monday.at("09:30").do(self.sendmail)
+        schedule.every().monday.at("09:15").do(self.ask_baguette)
+        schedule.every().monday.at("09:30").do(self.ask_baguette)
+        schedule.every().monday.at("09:45").do(self.sendmail)
         schedule.every().thursday.at("09:00").do(self.ask_baguette)
-        schedule.every().thursday.at("09:30").do(self.sendmail)
+        schedule.every().thursday.at("09:15").do(self.ask_baguette)
+        schedule.every().thursday.at("09:30").do(self.ask_baguette)
+        schedule.every().thursday.at("09:45").do(self.sendmail)
         # Debug schedules
         # schedule.every(10).seconds.do(self.ask_baguette)
         # schedule.every(20).seconds.do(self.sendmail)
@@ -129,11 +131,26 @@ class BaguetteJabberBot(JabberBot):
                       user=self.room,
                       message_type="groupchat")
 
+    def get_users_notif(self):
+        """Recupere les users qui veulent une notification"""
+        return [u['name'] for u in list(self.mongoDb.notif.find())]
+
+    def add_user_notif(self, user):
+        """Ajoute un user dans la liste des notifs"""
+        self.mongoDb.notif.insert({'name': '{}'.format(user)})
+
+    def delete_user_notif(self, user):
+        """Supprime un user de la liste des notifs"""
+        self.mongoDb.notif.delete_one({'name': '{}'.format(user)})
+
     def ask_baguette(self):
         """ Demande aux gens s'ils veulent une baguette """
-        self.send(text="Coucou tout le monde! Voulez vous une baguette {} ?".format(self.highlight),
-                  user=self.room,
-                  message_type="groupchat")
+        users = self.get_users_notif()
+
+        self.send(text="Coucou tout le monde! Voulez vous une baguette {} ?".format(
+            ' '.join(map(str, [user for user in users if user not in self.orders]))),
+            user=self.room,
+            message_type="groupchat")
 
     @botcmd
     def baguette(self, mess, args):
@@ -156,11 +173,7 @@ class BaguetteJabberBot(JabberBot):
     @botcmd
     def oui(self, mess, args):
         """ Commander une baguette (shortcut) """
-        user = mess.getFrom().getResource()
-        if user not in self.orders:
-            self.orders.append(user)
-
-        return "OK!"
+        return self.commande(mess, args)
 
     def commande(self, mess, args):
         """ Commander une baguette """
@@ -185,26 +198,30 @@ class BaguetteJabberBot(JabberBot):
 
     def notif(self, mess, args):
         """ Pour s'ajouter dans la liste des gens prevenus """
-
+        users = self.get_users_notif()
         user = mess.getFrom().getResource()
-        if user not in self.highlight:
-            self.highlight.append(user)
 
-        return 'Ok, je te previendrai avant la prochaine commande de pain.'
+        if user not in users:
+            self.add_user_notif(user)
+            return 'Ok, je te previendrai pour la prochaine commande de pain.'
+        else:
+            return 'Tu es deja dans la liste !'
 
     def no_notif(self, mess, args):
         """ Pour s'enlever de la liste des gens prevenus """
-
+        users = self.get_users_notif()
         user = mess.getFrom().getResource()
-        if user in self.highlight:
-            self.highlight.remove(user)
 
-        return 'Ok, va te faire voir'
+        if user in users:
+            self.delete_user_notif(user)
+            return 'Ok, va te faire voir'
+        else:
+            return 'Beuh, pas dans la liste'
 
     def list_notif(self, mess, args):
         """ Liste les gens qui veulent etre prevenus de la prochaine commande """
-        return 'Liste des gens qui veulent etre prevenus de la prochaine commande: {}'.format(
-            ' '.join(self.highlight))
+        users = self.get_users_notif()
+        return 'Liste des gens qui veulent etre prevenus de la prochaine commande: {}'.format(' '.join(map(str, users)))
 
     @botcmd
     def ping(self, mess, args):
@@ -387,10 +404,6 @@ def parse_args():
     parser.add_argument("--nick",
                         help="Nick name to show. Default is Boulanger",
                         default="Boulanger")
-    parser.add_argument("--highlight",
-                        help="Nickname to highlight when asking questions. Space separated. "
-                             "Default is arnaud.morin",
-                        default="arnaud.morin")
     parser.add_argument("--fromm",
                         help="Mail address to send from")
     parser.add_argument("--to",
@@ -418,7 +431,6 @@ def main():
     bot.subject = main_args.subject
     bot.nick = main_args.nick
     bot.mongoDb = bot.connect_mongo(main_args.mongoUser, read_mongo_password(), main_args.mongoUrl)
-    bot.highlight = main_args.highlight.split(' ')
     # create a regex to check if a message is a direct message
     bot.direct_message_re = re.compile(r'^%s?[^\w]?' % main_args.nick)
     try:
