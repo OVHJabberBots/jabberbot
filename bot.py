@@ -30,7 +30,6 @@ class BaguetteJabberBot(JabberBot):
 
     def __init__(self, *args, **kwargs):
         """ Initialize variables. """
-        self.orders = []
         self.room = None
         self.fromm = None
         self.mail_to = None
@@ -108,12 +107,13 @@ class BaguetteJabberBot(JabberBot):
 
     def sendmail(self):
         """ Send email """
+        orders = self.get_users_orders()
 
-        if self.orders:
+        if orders:
             msg = MIMEText(
                 "Bonjour Marie,\nEst-il possible de rapporter {} baguettes aujourd'hui ?"
                 "\n\nDemandeurs :\n{}".format(
-                    len(self.orders), '\n'.join(self.orders)))
+                    len(orders), '\n'.join(orders)))
             msg['Subject'] = self.subject
             msg['From'] = self.fromm
             msg['To'] = self.mail_to
@@ -122,10 +122,11 @@ class BaguetteJabberBot(JabberBot):
             smtp.sendmail(self.fromm, [self.mail_to], msg.as_string())
             smtp.quit()
 
-            self.send(text="J'ai envoye la commande a Marie ! cc {}".format(" ".join(self.orders)),
+            self.send(text="J'ai envoye la commande a Marie ! cc {}".format(" ".join(orders)),
                       user=self.room, message_type="groupchat")
 
-            self.orders = []
+            for user in orders:
+                self.delete_user_orders(user)
         else:
             self.send(text="Pas de commande aujourd'hui !",
                       user=self.room,
@@ -143,12 +144,25 @@ class BaguetteJabberBot(JabberBot):
         """Supprime un user de la liste des notifs"""
         self.mongoDb.notif.delete_one({'name': '{}'.format(user)})
 
+    def get_users_orders(self):
+        """Recupere les orders en attentes"""
+        return [u['name'] for u in list(self.mongoDb.orders.find())]
+
+    def add_user_orders(self, user):
+        """Ajoute un user dans la liste des orders"""
+        self.mongoDb.orders.insert({'name': '{}'.format(user)})
+
+    def delete_user_orders(self, user):
+        """Supprime un user de la liste des orders"""
+        self.mongoDb.orders.delete_one({'name': '{}'.format(user)})
+
     def ask_baguette(self):
         """ Demande aux gens s'ils veulent une baguette """
         users = self.get_users_notif()
+        orders = self.get_users_orders()
 
         self.send(text="Coucou tout le monde! Voulez vous une baguette {} ?".format(
-            ' '.join(map(str, [user for user in users if user not in self.orders]))),
+            ' '.join(map(str, [user for user in users if user not in orders]))),
             user=self.room,
             message_type="groupchat")
 
@@ -178,23 +192,26 @@ class BaguetteJabberBot(JabberBot):
     def commande(self, mess, args):
         """ Commander une baguette """
         user = mess.getFrom().getResource()
-        if user not in self.orders:
-            self.orders.append(user)
+        orders = self.get_users_orders()
+        if user not in orders:
+            self.add_user_orders(user)
 
         return "OK!"
 
     def annule(self, mess, args):
         """ Annuler la commande d'une baguette """
+        orders = self.get_users_orders()
         user = mess.getFrom().getResource()
-        if user in self.orders:
-            self.orders.remove(user)
+        if user in orders:
+            self.delete_user_orders(user)
 
         return "OK!"
 
     def liste(self, mess, args):
         """ Liste les gens qui veulent une baguette """
+        orders = self.get_users_orders()
 
-        return 'Liste des gens qui veulent une baguette: {}'.format(' '.join(self.orders))
+        return 'Liste des gens qui veulent une baguette: {}'.format(' '.join(orders))
 
     def notif(self, mess, args):
         """ Pour s'ajouter dans la liste des gens prevenus """
