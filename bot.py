@@ -123,8 +123,10 @@ class BaguetteJabberBot(JabberBot):
             msg['Subject'] = self.subject
             msg['From'] = self.fromm
             msg['To'] = self.mail_to
-
-            smtp = smtplib.SMTP('localhost')
+            smtp_server = 'localhost'
+            if 'SMTP_SERVER' in os.environ:
+                smtp_server = os.environ['SMTP_SERVER']
+            smtp = smtplib.SMTP(smtp_server)
             smtp.sendmail(self.fromm, [self.mail_to], msg.as_string())
             smtp.quit()
 
