@@ -12,6 +12,7 @@ import logging
 import os
 import re
 import smtplib
+import sys
 from email.mime.text import MIMEText
 
 import requests
@@ -81,7 +82,11 @@ class BaguetteJabberBot(JabberBot):
 
     def connect_mongo(self, mongoUser, mongoPassword, mongoUrl):
         # Connect to mongo
-        connectString = 'mongodb://' + mongoUser + ':' + mongoPassword + '@' + mongoUrl
+
+        if mongoPassword is not "":
+            connectString = 'mongodb://' + mongoUser + ':' + mongoPassword + '@' + mongoUrl
+        else:
+            connectString = 'mongodb://' + mongoUrl
         mongoClient = MongoClient(connectString)
         return mongoClient.boulanger
 
@@ -394,12 +399,16 @@ def read_password(username):
     """Read password from $HOME/.p or environment variable"""
     if 'BOT_PASSWORD' in os.environ:
         return os.environ['BOT_PASSWORD']
-    with open(os.environ['HOME'] + "/.p", "r+") as current_file:
-        for line in current_file.readlines():
-            current_tuple = line.split(":")
-            if current_tuple[0] == username:
-                return current_tuple[1].rstrip()
-    print 'No password found'
+    try:
+        with open(os.environ['HOME'] + "/.p", "r+") as current_file:
+            for line in current_file.readlines():
+                current_tuple = line.split(":")
+                if current_tuple[0] == username:
+                    return current_tuple[1].rstrip()
+        print 'No password found'
+    except IOError:
+        print("Cannot find the poezio configuration file needed for password")
+        sys.exit(1)
     return ''
 
 
@@ -440,7 +449,7 @@ def parse_args():
 def main():
     """Connect to the server and run the bot forever"""
     main_args = parse_args()
-    password = read_password(main_args.username.replace("@jabber.ovh.net", ""))
+    password = read_password(main_args.username)
     bot = BaguetteJabberBot(main_args.username, password)
     bot.room = main_args.room
     bot.fromm = main_args.fromm

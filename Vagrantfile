@@ -24,6 +24,7 @@ Vagrant.configure("2") do |config|
   # accessing "localhost:8080" will access port 80 on the guest machine.
   config.vm.network "forwarded_port", guest: 5222, host: 5222
   config.vm.network "forwarded_port", guest: 5280, host: 5280
+  config.vm.network "forwarded_port", guest: 27017, host: 27017
 
   # Create a private network, which allows host-only access to the machine
   # using a specific IP.
@@ -60,7 +61,12 @@ Vagrant.configure("2") do |config|
   # documentation for more information about their specific syntax and use.
   config.vm.provision "shell", inline: <<-SHELL
     apt-get update
-    apt-get install ejabberd -y
+    apt-get install ejabberd mongodb-server -y
     ejabberdctl register admin localhost admin
+    sed "s/\"@localhost\"/\"admin\": \"localhost\"/g" -i /etc/ejabberd/ejabberd.yml
+    sed "s/starttls: true/starttls: false/g" -i /etc/ejabberd/ejabberd.yml
+    sed "s/bind_ip = 127.0.0.1/bind_ip = 0.0.0.0/g" -i /etc/mongodb.conf
+    service mongodb restart
+    service ejabberd restart
   SHELL
 end
