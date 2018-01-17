@@ -133,6 +133,7 @@ class BaguetteJabberBot(JabberBot):
 
             for user in orders:
                 self.delete_user_orders(user)
+            self.first_round = True
         else:
             self.send(text="Pas de commande aujourd'hui !",
                       user=self.room,
@@ -189,6 +190,7 @@ class BaguetteJabberBot(JabberBot):
             ' '.join(map(str, results))),
             user=self.room,
             message_type="groupchat")
+        self.first_round = False
 
     @botcmd
     def baguette(self, mess, args):
