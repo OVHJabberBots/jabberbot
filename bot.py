@@ -36,6 +36,7 @@ class BaguetteJabberBot(JabberBot):
         self.mail_to = None
         self.subject = None
         self.nick = None
+        self.first_round = True
 
         try:
             del kwargs['room']
@@ -132,6 +133,7 @@ class BaguetteJabberBot(JabberBot):
 
             for user in orders:
                 self.delete_user_orders(user)
+            self.first_round = True
         else:
             self.send(text="Pas de commande aujourd'hui !",
                       user=self.room,
@@ -149,6 +151,18 @@ class BaguetteJabberBot(JabberBot):
         """Supprime un user de la liste des notifs"""
         self.mongoDb.notif.delete_one({'name': '{}'.format(user)})
 
+    def get_users_chase(self):
+        """Recupere les users qui veulent se faire harceler"""
+        return [u['name'] for u in list(self.mongoDb.chase.find())]
+
+    def add_user_chase(self, user):
+        """Ajoute un user dans la liste des harcelements"""
+        self.mongoDb.chase.insert({'name': '{}'.format(user)})
+
+    def delete_user_chase(self, user):
+        """Supprime un user de la liste des harcelements"""
+        self.mongoDb.chase.delete_one({'name': '{}'.format(user)})
+
     def get_users_orders(self):
         """Recupere les orders en attentes"""
         return [u['name'] for u in list(self.mongoDb.orders.find())]
@@ -165,11 +179,18 @@ class BaguetteJabberBot(JabberBot):
         """ Demande aux gens s'ils veulent une baguette """
         users = self.get_users_notif()
         orders = self.get_users_orders()
+        chase = self.get_users_chase()
+
+        if self.first_round:
+            results = [user for user in users if user not in orders]
+        else:
+            results = [user for user in users if user not in orders or user not in chase]
 
         self.send(text="Coucou tout le monde! Voulez vous une baguette {} ?".format(
-            ' '.join(map(str, [user for user in users if user not in orders]))),
+            ' '.join(map(str, results))),
             user=self.room,
             message_type="groupchat")
+        self.first_round = False
 
     @botcmd
     def baguette(self, mess, args):
@@ -180,7 +201,10 @@ class BaguetteJabberBot(JabberBot):
             'liste': self.liste,
             'notif': self.notif,
             'liste-notif': self.list_notif,
-            'no-notif': self.no_notif
+            'no-notif': self.no_notif,
+            'chase' : self.chase,
+            'no-chase': self.no_chase,
+            'liste-chase': self.list_chase
         }
         commands = '\n'.join(['%s baguette %s (%s)' % (self.nick, action_name, action_def.__doc__) for action_name, action_def in actions.iteritems()])
         actions[''] = lambda *args: '%s\n%s' % ('Tu veux dire quoi ?', commands)
@@ -244,6 +268,33 @@ class BaguetteJabberBot(JabberBot):
         """ Liste les gens qui veulent etre prevenus de la prochaine commande """
         users = self.get_users_notif()
         return 'Liste des gens qui veulent etre prevenus de la prochaine commande: {}'.format(' '.join(map(str, users)))
+
+    def chase(self, mess, args):
+        """ Pour s'ajouter dans la liste des gens prevenus """
+        users = self.get_users_chase()
+        user = mess.getFrom().getResource()
+
+        if user not in users:
+            self.add_user_chase(user)
+            return 'Ok, je te harcelerai pour la prochaine commande de pain.'
+        else:
+            return 'Tu es deja dans la chasing liste !'
+
+    def no_chase(self, mess, args):
+        """ Qu'il arrete de sonner trois fois le matin """
+        users = self.get_users_chase()
+        user = mess.getFrom().getResource()
+
+        if user in users:
+            self.delete_user_chase(user)
+            return 'Ok, va te faire voir'
+        else:
+            return 'Beuh, pas dans la chasing liste'
+
+    def list_chase(self, mess, args):
+        """ Liste des relous qui savent pas répondre a un message et qui se plaignent de pas avoir de baguette !!"""
+        users = self.get_users_chase()
+        return 'Liste des relous qui savent pas répondre a un message et qui se plaignent de pas avoir de baguette !!{}'.format(' '.join(map(str, users)))
 
     @botcmd
     def ping(self, mess, args):
