@@ -20,7 +20,10 @@ import schedule
 import xmpp
 from bs4 import BeautifulSoup
 from jabberbot import JabberBot, botcmd
-from pymongo import MongoClient
+
+from db.user import User
+from db.order import Order
+from db.notif import Notif
 
 # Replace NS_DELAY variable by good one
 xmpp.NS_DELAY = 'urn:xmpp:delay'
@@ -77,19 +80,6 @@ class BaguetteJabberBot(JabberBot):
         schedule.every().thursday.at("09:15").do(self.ask_baguette)
         schedule.every().thursday.at("09:30").do(self.ask_baguette)
         schedule.every().thursday.at("09:45").do(self.sendmail)
-        # Debug schedules
-        # schedule.every(10).seconds.do(self.ask_baguette)
-        # schedule.every(20).seconds.do(self.sendmail)
-
-    def connect_mongo(self, mongoUser, mongoPassword, mongoUrl):
-        # Connect to mongo
-
-        if mongoPassword is not "":
-            connectString = 'mongodb://' + mongoUser + ':' + mongoPassword + '@' + mongoUrl
-        else:
-            connectString = 'mongodb://' + mongoUrl
-        mongoClient = MongoClient(connectString)
-        return mongoClient.boulanger
 
     def callback_message(self, conn, mess):
         """ Changes the behaviour of the JabberBot in order to allow
@@ -113,13 +103,13 @@ class BaguetteJabberBot(JabberBot):
 
     def sendmail(self):
         """ Send email """
-        orders = self.get_users_orders()
+        orders = Order.objects()
 
         if orders:
             msg = MIMEText(
                 "Bonjour Marie,\nEst-il possible de rapporter {} baguettes aujourd'hui ?"
                 "\n\nDemandeurs :\n{}".format(
-                    len(orders), '\n'.join(orders)))
+                    len(orders), '\n'.join([o.name for o in orders])))
             msg['Subject'] = self.subject
             msg['From'] = self.fromm
             msg['To'] = self.mail_to
@@ -128,7 +118,7 @@ class BaguetteJabberBot(JabberBot):
             smtp.sendmail(self.fromm, [self.mail_to], msg.as_string())
             smtp.quit()
 
-            self.send(text="J'ai envoye la commande a Marie ! cc {}".format(" ".join(orders)),
+            self.send(text="J'ai envoye la commande a Marie ! cc {}".format(" ".join([o.name for o in orders])),
                       user=self.room, message_type="groupchat")
 
             for user in orders:
@@ -138,52 +128,12 @@ class BaguetteJabberBot(JabberBot):
                       user=self.room,
                       message_type="groupchat")
 
-    def get_users_notif(self):
-        """Recupere les users qui veulent une notification"""
-        return [u['name'] for u in list(self.mongoDb.notif.find())]
-
-    def add_user_notif(self, user):
-        """Ajoute un user dans la liste des notifs"""
-        self.mongoDb.notif.insert({'name': '{}'.format(user)})
-
-    def delete_user_notif(self, user):
-        """Supprime un user de la liste des notifs"""
-        self.mongoDb.notif.delete_one({'name': '{}'.format(user)})
-
-    def get_users_chase(self):
-        """Recupere les users qui veulent se faire harceler"""
-        return [u['name'] for u in list(self.mongoDb.chase.find())]
-
-    def add_user_chase(self, user):
-        """Ajoute un user dans la liste des harcelements"""
-        self.mongoDb.chase.insert({'name': '{}'.format(user)})
-
-    def delete_user_chase(self, user):
-        """Supprime un user de la liste des harcelements"""
-        self.mongoDb.chase.delete_one({'name': '{}'.format(user)})
-
-    def get_users_orders(self):
-        """Recupere les orders en attentes"""
-        return [u['name'] for u in list(self.mongoDb.orders.find())]
-
-    def add_user_orders(self, user):
-        """Ajoute un user dans la liste des orders"""
-        self.mongoDb.orders.insert({'name': '{}'.format(user)})
-
-    def delete_user_orders(self, user):
-        """Supprime un user de la liste des orders"""
-        self.mongoDb.orders.delete_one({'name': '{}'.format(user)})
-
     def ask_baguette(self):
         """ Demande aux gens s'ils veulent une baguette """
-        users = self.get_users_notif()
-        orders = self.get_users_orders()
-        chase = self.get_users_chase()
+        orders = Order.objects()
+        notifs = Notif.objects()
 
-        if self.first_round:
-            results = [user for user in users if user not in orders]
-        else:
-            results = [user for user in users if user not in orders or user not in chase]
+        results = [user.name for user in notifs if user not in [order.name for order in orders]]
 
         self.send(text="Coucou tout le monde! Voulez vous une baguette {} ?".format(
             ' '.join(map(str, results))),
@@ -194,11 +144,11 @@ class BaguetteJabberBot(JabberBot):
     def baguette(self, mess, args):
         """Tout pour commande une baguette"""
         actions = {
-            'commande': self.commande,
-            'annule': self.annule,
-            'liste': self.liste,
+            'commande': self.order,
+            'annule': self.cancel,
+            'liste': self.list_orders,
             'notif': self.notif,
-            'liste-notif': self.list_notif,
+            'list-notif': self.list_notif,
             'no-notif': self.no_notif,
             'chase' : self.chase,
             'no-chase': self.no_chase,
@@ -214,85 +164,63 @@ class BaguetteJabberBot(JabberBot):
     @botcmd
     def oui(self, mess, args):
         """ Commander une baguette (shortcut) """
-        return self.commande(mess, args)
+        return self.order(mess, args)
 
-    def commande(self, mess, args):
+    def order(self, mess, args):
         """ Commander une baguette """
-        user = mess.getFrom().getResource()
-        orders = self.get_users_orders()
-        if user not in orders:
-            self.add_user_orders(user)
+        username = mess.getFrom().getResource()
+        order = Order.objects(name=username).first()
+        if order is None:
+            order = Order(name=username)
+            order.save()
+            return 'Ok!'
 
-        return "OK!"
+        return "T'as déjà passé une commande !"
 
-    def annule(self, mess, args):
+    def cancel(self, mess, args):
         """ Annuler la commande d'une baguette """
-        orders = self.get_users_orders()
-        user = mess.getFrom().getResource()
-        if user in orders:
-            self.delete_user_orders(user)
+        username = mess.getFrom().getResource()
+        order = Order.objects(name=username).first()
 
-        return "OK!"
+        if order is not None:
+            order.delete()
+            return 'Ok, j\'efface ta commande'
 
-    def liste(self, mess, args):
+        return 'T\'avais meme pas passe commande ...'
+
+    def list_orders(self, mess, args):
         """ Liste les gens qui veulent une baguette """
-        orders = self.get_users_orders()
+        orders = Order.objects()
 
-        return 'Liste des gens qui veulent une baguette: {}'.format(' '.join(orders))
+        return 'Liste des gens qui veulent une baguette: {}'.format(' '.join([o.name for o in orders]))
 
     def notif(self, mess, args):
         """ Pour s'ajouter dans la liste des gens prevenus """
-        users = self.get_users_notif()
-        user = mess.getFrom().getResource()
+        username = mess.getFrom().getResource()
+        notif = Notif.objects(name=username).first()
 
-        if user not in users:
-            self.add_user_notif(user)
+        if notif is None:
+            notif = Notif(name=username)
+            notif.save()
             return 'Ok, je te previendrai pour la prochaine commande de pain.'
-        else:
-            return 'Tu es deja dans la liste !'
+
+        return 'Tu es deja dans la liste !'
 
     def no_notif(self, mess, args):
         """ Pour s'enlever de la liste des gens prevenus """
-        users = self.get_users_notif()
-        user = mess.getFrom().getResource()
+        username = mess.getFrom().getResource()
+        notif = Notif.objects(name=username).first()
 
-        if user in users:
-            self.delete_user_notif(user)
+        if notif is not None:
+            notif.delete()
             return 'Ok, va te faire voir'
-        else:
-            return 'Beuh, pas dans la liste'
+
+        return 'Beuh, t\'es pas dans la liste'
 
     def list_notif(self, mess, args):
         """ Liste les gens qui veulent etre prevenus de la prochaine commande """
-        users = self.get_users_notif()
-        return 'Liste des gens qui veulent etre prevenus de la prochaine commande: {}'.format(' '.join(map(str, users)))
-
-    def chase(self, mess, args):
-        """ Pour s'ajouter dans la liste des gens prevenus """
-        users = self.get_users_chase()
-        user = mess.getFrom().getResource()
-
-        if user not in users:
-            self.add_user_chase(user)
-            return 'Ok, je te harcelerai pour la prochaine commande de pain.'
-        else:
-            return 'Tu es deja dans la chasing liste !'
-
-    def no_chase(self, mess, args):
-        """ Qu'il arrete de sonner trois fois le matin """
-        users = self.get_users_chase()
-        user = mess.getFrom().getResource()
-
-        if user in users:
-            self.delete_user_chase(user)
-            return 'Ok, va te faire voir'
-        else:
-            return 'Beuh, pas dans la chasing liste'
-
-    def list_chase(self, mess, args):
-        """ Liste des relous qui savent pas répondre a un message et qui se plaignent de pas avoir de baguette !!"""
-        users = self.get_users_chase()
-        return 'Liste des relous qui savent pas répondre a un message et qui se plaignent de pas avoir de baguette !!{}'.format(' '.join(map(str, users)))
+        notifs = Notif.objects()
+        return 'Liste des gens qui veulent etre prevenus de la prochaine commande: {}'.format(' '.join([n.name for n in notifs]))
 
     @botcmd
     def ping(self, mess, args):
@@ -505,7 +433,7 @@ def main():
     bot.mail_to = main_args.to
     bot.subject = main_args.subject
     bot.nick = main_args.nick
-    bot.mongoDb = bot.connect_mongo(main_args.mongoUser, read_mongo_password(), main_args.mongoUrl)
+    import db
     # create a regex to check if a message is a direct message
     bot.direct_message_re = re.compile(r'^%s?[^\w]?' % main_args.nick)
     try:
