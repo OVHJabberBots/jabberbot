@@ -26,6 +26,8 @@ def main():
         for cmdname,function  in inspect.getmembers(module, inspect.isfunction):
             if getattr(function, '_jabberbot_command', False):
                 bot.register_command(cmdname, function)
+            elif cmdname == "init":
+                function()
 
     try:
         bot.muc_join_room(main_args.room, main_args.nick)

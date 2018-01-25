@@ -5,6 +5,10 @@ from OVHJabberBot.db.notif import Notif
 
 from jabberbot import botcmd
 
+import schedule
+import smtplib
+from email.mime.text import MIMEText
+
 
 @botcmd
 def baguette(mess, args):
@@ -32,6 +36,17 @@ def baguette(mess, args):
 def oui(mess, args):
     """ Commander une baguette (shortcut) """
     return order(mess, args)
+
+
+def init():
+    schedule.every().monday.at("09:00").do(ask_baguette)
+    schedule.every().monday.at("09:15").do(ask_baguette)
+    schedule.every().monday.at("09:30").do(ask_baguette)
+    schedule.every().monday.at("09:45").do(sendmail)
+    schedule.every().thursday.at("09:00").do(ask_baguette)
+    schedule.every().thursday.at("09:15").do(ask_baguette)
+    schedule.every().thursday.at("09:30").do(ask_baguette)
+    schedule.every().thursday.at("09:45").do(sendmail)
 
 
 def order(mess, args):
@@ -95,3 +110,43 @@ def list_notif(mess, args):
     notifs = Notif.objects()
     return 'Liste des gens qui veulent etre prevenus de la prochaine commande: {}'.format(
         ' '.join([n.name for n in notifs]))
+
+
+def ask_baguette():
+    """ Demande aux gens s'ils veulent une baguette """
+    orders = Order.objects()
+    notifs = Notif.objects()
+
+    results = [user.name for user in notifs if user not in [order.name for order in orders]]
+
+    BaguetteJabberBot.send(BaguetteJabberBot(), text="Coucou tout le monde! Voulez vous une baguette {} ?".format(
+        ' '.join(map(str, results))),
+        user=BaguetteJabberBot().room,
+        message_type="groupchat")
+
+
+def sendmail():
+    """ Send email """
+    orders = Order.objects()
+
+    if orders:
+        msg = MIMEText(
+            "Bonjour Marie,\nEst-il possible de rapporter {} baguettes aujourd'hui ?"
+            "\n\nDemandeurs :\n{}".format(
+                len(orders), '\n'.join([o.name for o in orders])))
+        msg['Subject'] = BaguetteJabberBot().subject
+        msg['From'] = BaguetteJabberBot().fromm
+        msg['To'] = BaguetteJabberBot().mail_to
+
+        smtp = smtplib.SMTP('localhost')
+        smtp.sendmail(BaguetteJabberBot().fromm, [BaguetteJabberBot().mail_to], msg.as_string())
+        smtp.quit()
+
+        BaguetteJabberBot.send(BaguetteJabberBot(), text="J'ai envoye la commande a Marie ! cc {}".format(" ".join([o.name for o in orders])),
+                  user=BaguetteJabberBot().room, message_type="groupchat")
+
+        Order.drop_collection()
+    else:
+        BaguetteJabberBot.send(BaguetteJabberBot(), text="Pas de commande aujourd'hui !",
+                  user=BaguetteJabberBot().room,
+                  message_type="groupchat")
