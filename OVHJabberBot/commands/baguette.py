@@ -10,6 +10,7 @@ import smtplib
 from email.mime.text import MIMEText
 
 round = 0
+non_list = []
 
 @botcmd
 def baguette(mess, args):
@@ -37,6 +38,21 @@ def oui(mess, args):
     """ Commander une baguette (shortcut) """
     return order(mess, args)
 
+@botcmd
+def non(mess, args):
+    """ Ne plus me notifier pour aujourd'hui"""
+    global non_list
+    username = mess.getFrom().getResource()
+
+    if username not in non_list:
+        non_list.append(username)
+        BaguetteJabberBot.send(BaguetteJabberBot(), text="ok, tu prends pas de pain aujourd'hui",
+                           user=BaguetteJabberBot().room,
+                           message_type="groupchat")
+    else:
+        BaguetteJabberBot.send(BaguetteJabberBot(), text="Oui, j'ai bien compris que tu voulais pas de pain.",
+                           user=BaguetteJabberBot().room,
+                           message_type="groupchat")
 
 def init():
     schedule.every().monday.at("09:00").do(ask_baguette)
@@ -131,7 +147,7 @@ def ask_baguette():
     orders = Order.objects()
     notifs = Notif.objects(times__gt=round)
 
-    results = [user.name for user in notifs if user not in [order.name for order in orders]]
+    results = [user.name for user in notifs if user not in [order.name for order in orders] and user not in non_list]
 
     BaguetteJabberBot.send(BaguetteJabberBot(), text="Coucou tout le monde! Voulez vous une baguette {} ?".format(
         ' '.join(map(str, results))),
@@ -144,7 +160,9 @@ def ask_baguette():
 def sendmail():
     """ Send email """
     global round
+    global non_list
     round = 0
+    non_list = []
     orders = Order.objects()
 
     if orders:
