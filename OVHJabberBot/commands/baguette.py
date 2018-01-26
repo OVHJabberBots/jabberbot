@@ -9,6 +9,7 @@ import schedule
 import smtplib
 from email.mime.text import MIMEText
 
+round = 0
 
 @botcmd
 def baguette(mess, args):
@@ -28,8 +29,7 @@ def baguette(mess, args):
 
     def default_action(*args):
         return '%s\n%s' % ('Je ne cromprends pas', commands)
-
-    BaguetteJabberBot.send_simple_reply(BaguetteJabberBot(), mess, actions.get(args.strip(), default_action)(mess, args))
+    BaguetteJabberBot.send_simple_reply(BaguetteJabberBot(), mess, actions.get(args.strip().split(" ")[0], default_action)(mess, args))
 
 
 @botcmd
@@ -81,16 +81,26 @@ def list_orders(mess, args):
 
 
 def notif(mess, args):
-    """ Pour s'ajouter dans la liste des gens prevenus """
+    """ Pour s'ajouter dans la liste des gens prevenus, on peut ajouter un chiffre entre un et trois pour etre notifie plusieurs fois """
     username = mess.getFrom().getResource()
     notif = Notif.objects(name=username).first()
+    try:
+        times = int(args.strip().split(" ")[1])
+    except IndexError:
+        times = 3
+    except ValueError:
+        return 'C\'est un chiffre qu\'il faut mettre là hein !'
+
+    if times < 0 or times > 3:
+        return 'Non, c\'est max trois fois, t\'abuses grave là.'
 
     if notif is None:
         notif = Notif(name=username)
-        notif.save()
-        return 'Ok, je te previendrai pour la prochaine commande de pain.'
 
-    return 'Tu es deja dans la liste !'
+    notif.times = times
+    notif.save()
+
+    return 'Ok, je te previendrai {} fois pour la prochaine commande de pain.'.format(times)
 
 
 def no_notif(mess, args):
@@ -107,15 +117,19 @@ def no_notif(mess, args):
 
 def list_notif(mess, args):
     """ Liste les gens qui veulent etre prevenus de la prochaine commande """
-    notifs = Notif.objects()
-    return 'Liste des gens qui veulent etre prevenus de la prochaine commande: {}'.format(
-        ' '.join([n.name for n in notifs]))
+    notifs = Notif.objects(times__gt=0)
+
+    s = 'Liste des gens qui veulent etre prevenus de la prochaine commande:\n'
+    for n in notifs:
+        s += str(n) + '\n'
+    return s
 
 
 def ask_baguette():
     """ Demande aux gens s'ils veulent une baguette """
+    global round
     orders = Order.objects()
-    notifs = Notif.objects()
+    notifs = Notif.objects(times__gt=round)
 
     results = [user.name for user in notifs if user not in [order.name for order in orders]]
 
@@ -124,9 +138,13 @@ def ask_baguette():
         user=BaguetteJabberBot().room,
         message_type="groupchat")
 
+    round += 1
+
 
 def sendmail():
     """ Send email """
+    global round
+    round = 0
     orders = Order.objects()
 
     if orders:
