@@ -1,4 +1,4 @@
-import argparse
+import configargparse
 
 import os
 
@@ -23,30 +23,35 @@ def parse_args():
     """
     Parse command line args
     """
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--username",
+    parser = configargparse.ArgParser(default_config_files=["~/.config/boulanger.conf"])
+    parser.add("-c",
+               is_config_file=True,
+               help="Path to the configuration file")
+    parser.add("--username",
                         required=True,
-                        help="Username")
-    parser.add_argument("--room",
+                        help="Your jabber username")
+    parser.add("--room",
                         help="Room to join. Default is pcr@conference.jabber.ovh.net",
                         default="pcr@conference.jabber.ovh.net")
-    parser.add_argument("--nick",
+    parser.add("--nick",
                         help="Nick name to show. Default is Boulanger",
                         default="Boulanger")
-    parser.add_argument("--fromm",
+    parser.add("--password",
+                        help="Your jabber password")
+    parser.add("--fromm",
                         help="Mail address to send from")
-    parser.add_argument("--to",
+    parser.add("--to",
                         help="Mail address to send to")
-    parser.add_argument("--subject",
+    parser.add("--subject",
                         help="Subject of mail. Default is Commande de baguette",
                         default="Commande de baguette")
-    parser.add_argument("--mongoUser",
+    parser.add("--mongoUser",
                         help="Mongo db user",
                         default=None)
-    parser.add_argument("--mongoPass",
+    parser.add("--mongoPass",
                         help="Mongo db password",
                         default=None)
-    parser.add_argument("--mongoUrl",
+    parser.add("--mongoUrl",
                         help="Mongo db user",
                         default="ds125183.mlab.com:25183/boulanger")
     return parser.parse_args()

@@ -4,3 +4,4 @@ xmpppy
 schedule
 beautifulsoup4
 mongoengine
+configargparse
