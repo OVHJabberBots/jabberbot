@@ -18,12 +18,12 @@ Or you can use the BOT_PASSWORD EnvVar to supply your jabber password
 ## Usage
 
 ``` bash
-export BOT_PASSWORD= & export MONGO_PASSWORD= & ./bot.py --username firstname.lastname@yourdomain --room room@conference.jabber.ovh.net --mongoUrl yourmongo
+python -m OVHJabberBot --username firstname.lastname@yourdomain --room room@conference --mongoUser boulanger --mongoPass --...
 ```
-
+Instead of providing all parameters, you can put them in a file as key=value. It's looking at ~/.config/boulanger.ini by default but the path can be overrided by the -c.
 
 ## Dev
 Via the vagrant VM
 ``` bash
-export BOT_PASSWORD=admin & export MONGO_PASSWORD="" & ./bot.py --username admin --room test@localhost --mongoUrl localhost/boulanger
+python -m OVHJabberBot --username admin@localhost --room test@conference.localhost --mongoUrl localhost/boulanger
 ```

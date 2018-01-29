@@ -3,4 +3,5 @@ requests
 xmpppy
 schedule
 beautifulsoup4
-pymongo
+mongoengine
+configargparse
