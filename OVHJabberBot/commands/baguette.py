@@ -133,7 +133,7 @@ def no_notif(mess, args):
 
 def list_notif(mess, args):
     """ Liste les gens qui veulent etre prevenus de la prochaine commande """
-    notifs = Notif.objects(times__gt=0)
+    notifs = Notif.get_all()
 
     s = 'Liste des gens qui veulent etre prevenus de la prochaine commande:\n'
     for n in notifs:
@@ -145,7 +145,7 @@ def ask_baguette():
     """ Demande aux gens s'ils veulent une baguette """
     global round
     orders = Order.objects()
-    notifs = Notif.objects(times__gt=round)
+    notifs = Notif.get_all(times_gt=round)
 
     results = [user.name for user in notifs if user not in [order.name for order in orders] and user not in non_list]
 
