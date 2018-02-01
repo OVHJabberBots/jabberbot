@@ -147,7 +147,7 @@ def ask_baguette():
     orders = Order.objects()
     notifs = Notif.get_all(times_gt=round)
 
-    results = [user.name for user in notifs if user not in [order.name for order in orders] and user not in non_list]
+    results = [user.name for user in notifs if user.name not in [order.name for order in orders] and user.name not in non_list]
 
     BaguetteJabberBot.send(BaguetteJabberBot(), text="Coucou tout le monde! Voulez vous une baguette {} ?".format(
         ' '.join(map(str, results))),
