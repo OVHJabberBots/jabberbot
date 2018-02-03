@@ -26,3 +26,7 @@ class Notif(UpdatableDocument):
 
     def __str__(self):
         return "{} prevenu {} fois".format(self.name, self.times)
+
+    @staticmethod
+    def get_all(times_gt=0):
+        return Notif.objects(Q(times__exists=False) | Q(times__gt=times_gt))
