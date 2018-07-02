@@ -10,10 +10,11 @@ import logging
 import xmpp
 import schedule
 
-from jabberbot import JabberBot, botcmd
+from jabberbot import JabberBot
 
 # Replace NS_DELAY variable by good one
 xmpp.NS_DELAY = 'urn:xmpp:delay'
+
 
 class SingletonType(type):
     def __call__(cls, *args, **kwargs):
@@ -22,6 +23,7 @@ class SingletonType(type):
         except AttributeError:
             cls.__instance = super(SingletonType, cls).__call__(*args, **kwargs)
             return cls.__instance
+
 
 class BaguetteJabberBot(JabberBot):
     """Rennes Baguette bot"""
