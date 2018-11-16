@@ -1,5 +1,6 @@
 # coding: utf-8
 
+import os
 import yaml
 import smtplib
 from email.mime.text import MIMEText
@@ -9,7 +10,7 @@ def parse_args():
     """
     Parse command line args
     """
-    with open("/home/arnaud/.config/boulanger.conf") as f:
+    with open(os.environ['HOME'] + "/.config/boulanger.conf") as f:
         config = yaml.load(f)
 
     return config['config']

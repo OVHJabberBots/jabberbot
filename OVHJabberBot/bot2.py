@@ -97,7 +97,7 @@ class BoulangerBot(slixmpp.ClientXMPP):
 
             # Execute command to retrieve the result
             # Send the result
-            username = msg['from'].bare
+            username = msg.get_mucnick()
             if processed_message['command'].lower() == 'oui':
                 self.pain.oui(username)
                 msg = 'OK'
@@ -110,7 +110,7 @@ class BoulangerBot(slixmpp.ClientXMPP):
                 msg = "Je n'ai rien compris"
 
             self.send_message(
-                mto=username,
+                mto=self.room,
                 mbody=msg,
                 mtype='groupchat')
 
