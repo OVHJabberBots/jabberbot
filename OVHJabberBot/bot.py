@@ -48,6 +48,10 @@ class BaguetteJabberBot(JabberBot):
         except KeyError:
             pass
 
+        kwargs['debug'] = False
+        kwargs['port'] = 5222
+        kwargs['server'] = 'imp-1.uc.int.gns.ovh.net'
+
         # answer only direct messages or not?
         self.only_direct = kwargs.get('only_direct', True)
         try:
