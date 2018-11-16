@@ -6,10 +6,10 @@ A jabber bot to order a baguette
 """
 
 import logging
-from getpass import getpass
-from argparse import ArgumentParser
-
 import slixmpp
+
+from utils import parse_args
+from commands.pain import Pain
 
 
 class BoulangerBot(slixmpp.ClientXMPP):
@@ -25,6 +25,7 @@ class BoulangerBot(slixmpp.ClientXMPP):
 
         self.room = room
         self.nick = nick
+        self.pain = Pain()
 
         # The session_start event will be triggered when
         # the bot establishes its connection with the server
@@ -92,22 +93,25 @@ class BoulangerBot(slixmpp.ClientXMPP):
         """
         if msg['mucnick'] != self.nick and self.nick in msg['body']:
             # Process message to get command
-            processed_mess = self.process_message(msg['body'])
+            processed_message = self.process_message(msg['body'])
 
             # Execute command to retrieve the result
             # Send the result
-            #self.send_message(
-            #    mto=msg['from'].bare,
-            #    mbody="Commande: {} / Params: {}".format(
-            #        processed_mess['command'],
-            #        processed_mess['parameters'],
-            #    ),
-            #    mtype='groupchat')
+            username = msg['from'].bare
+            if processed_message['command'].lower() == 'oui':
+                self.pain.oui(username)
+                msg = 'OK'
+            elif processed_message['command'].lower() == 'non':
+                self.pain.non(username)
+                msg = 'OK'
+            elif processed_message['command'].lower() == 'liste':
+                msg = self.pain.liste_orders()
+            else:
+                msg = "Je n'ai rien compris"
+
             self.send_message(
-                mto=msg['from'].bare,
-                mbody="Coucou {}".format(
-                    msg['mucnick'],
-                ),
+                mto=username,
+                mbody=msg,
                 mtype='groupchat')
 
     def process_message(self, message):
@@ -142,46 +146,16 @@ class BoulangerBot(slixmpp.ClientXMPP):
 
 
 if __name__ == '__main__':
-    # Setup the command line arguments.
-    parser = ArgumentParser()
-
-    # Output verbosity options.
-    parser.add_argument("-q", "--quiet", help="set logging to ERROR",
-                        action="store_const", dest="loglevel",
-                        const=logging.ERROR, default=logging.INFO)
-    parser.add_argument("-d", "--debug", help="set logging to DEBUG",
-                        action="store_const", dest="loglevel",
-                        const=logging.DEBUG, default=logging.INFO)
-
-    # JID and password options.
-    parser.add_argument("-j", "--jid", dest="jid",
-                        help="JID to use")
-    parser.add_argument("-p", "--password", dest="password",
-                        help="password to use")
-    parser.add_argument("-r", "--room", dest="room",
-                        help="MUC room to join")
-    parser.add_argument("-n", "--nick", dest="nick",
-                        help="MUC nickname")
-
-    args = parser.parse_args()
+    args = parse_args()
 
     # Setup logging.
-    logging.basicConfig(level=args.loglevel,
+    logging.basicConfig(level=logging.ERROR,
                         format='%(levelname)-8s %(message)s')
-
-    if args.jid is None:
-        args.jid = input("Username: ")
-    if args.password is None:
-        args.password = getpass("Password: ")
-    if args.room is None:
-        args.room = input("MUC room: ")
-    if args.nick is None:
-        args.nick = input("MUC nickname: ")
 
     # Setup the BoulangerBot and register plugins. Note that while plugins may
     # have interdependencies, the order in which you register them does
     # not matter.
-    xmpp = BoulangerBot(args.jid, args.password, args.room, args.nick)
+    xmpp = BoulangerBot(args['jid'], args['password'], args['room'], args['nick'])
     xmpp.register_plugin('xep_0030')  # Service Discovery
     xmpp.register_plugin('xep_0045')  # Multi-User Chat
     xmpp.register_plugin('xep_0199')  # XMPP Ping

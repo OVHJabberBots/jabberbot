@@ -1,0 +1,8 @@
+---
+config:
+ jid: "titi@machin.com"
+ password: "toto"
+ room: "arnaud"
+ nick: "boulanger"
+ mail_to: "truc@bidule.com"
+...
