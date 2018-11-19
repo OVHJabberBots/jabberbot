@@ -2,7 +2,7 @@
 config:
  jid: "titi@machin.com"
  password: "toto"
- room: "arnaud"
+ room: "rennes@conferences.jabber.com"
  nick: "boulanger"
  mail_to: "truc@bidule.com"
 ...
